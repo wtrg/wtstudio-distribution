@@ -9,8 +9,8 @@ Write-Host "========================================" -ForegroundColor Cyan
 
 $InstallDir = "$env:LOCALAPPDATA\WTStudio"
 $BinDir = "$InstallDir\bin"
-$ZipUrl = "https://github.com/wtrg/wtstudio-source/releases/download/v4.05.1/WTStudio-Portable-Windows.zip"
-$ChecksumUrl = "https://github.com/wtrg/wtstudio-source/releases/download/v4.05.1/SHA256SUMS.txt"
+$ZipUrl = "https://github.com/wtrg/wtstudio-distribution/releases/download/v4.05.1/WTStudio-Portable-Windows.zip"
+$ChecksumUrl = "https://github.com/wtrg/wtstudio-distribution/releases/download/v4.05.1/SHA256SUMS.txt"
 
 # Create directories
 New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
