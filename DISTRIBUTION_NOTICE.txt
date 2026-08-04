@@ -1,0 +1,4 @@
+WTStudio Official Public Distribution Repository
+Copyright (c) 2026 WTStudio. All rights reserved.
+This repository contains installation scripts, documentation, and uninstallation helpers for WTStudio binaries.
+Application source code is hosted separately in a private repository.
