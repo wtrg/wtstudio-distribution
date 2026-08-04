@@ -20,9 +20,10 @@ $TempZip = "$env:TEMP\WTStudio-Portable-Windows.zip"
 $TempChecksum = "$env:TEMP\SHA256SUMS.txt"
 
 try {
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
     Write-Host "[1/5] Downloading WTStudio release package..." -ForegroundColor Yellow
-    Invoke-WebRequest -Uri $ZipUrl -OutFile $TempZip -UseBasicParsing
-    Invoke-WebRequest -Uri $ChecksumUrl -OutFile $TempChecksum -UseBasicParsing
+    Invoke-WebRequest -Uri $ZipUrl -OutFile $TempZip -UseBasicParsing -MaximumRedirection 10
+    Invoke-WebRequest -Uri $ChecksumUrl -OutFile $TempChecksum -UseBasicParsing -MaximumRedirection 10
 
     Write-Host "[2/5] Verifying SHA-256 checksum..." -ForegroundColor Yellow
     $ActualHash = (Get-FileHash -Path $TempZip -Algorithm SHA256).Hash.ToLower()
