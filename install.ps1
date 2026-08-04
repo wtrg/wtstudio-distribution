@@ -9,7 +9,7 @@ Write-Host "========================================" -ForegroundColor Cyan
 
 $InstallDir = "$env:LOCALAPPDATA\WTStudio"
 $BinDir = "$InstallDir\bin"
-$ZipUrl = "https://github.com/wtrg/wtstudio-distribution/releases/download/v4.05.1/WTStudio-Portable-Windows.zip"
+$ZipUrl = "https://github.com/wtrg/wtstudio-distribution/releases/download/v4.05.1/pyVideoTrans-Windows.zip"
 $ChecksumUrl = "https://github.com/wtrg/wtstudio-distribution/releases/download/v4.05.1/SHA256SUMS.txt"
 
 # Create directories
