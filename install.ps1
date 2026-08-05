@@ -54,10 +54,8 @@ Write-Host ""
 try {
     # STEP 1: Download
     Write-Step "1/6" "Downloading WTStudio $VERSION_TAG from GitHub..."
-    $wc = New-Object System.Net.WebClient
-    $wc.Headers.Add("User-Agent", "WTStudio-Installer/1.0")
-    $wc.DownloadFile($ZIP_URL, $TEMP_ZIP)
-    $wc.DownloadFile($SUM_URL, $TEMP_SUM)
+    Invoke-WebRequest -Uri $ZIP_URL -OutFile $TEMP_ZIP -UserAgent "WTStudio-Installer/1.0"
+    Invoke-WebRequest -Uri $SUM_URL -OutFile $TEMP_SUM -UserAgent "WTStudio-Installer/1.0"
     Write-OK "Downloaded $ZIP_NAME ($([math]::Round((Get-Item $TEMP_ZIP).Length / 1MB, 1)) MB)"
 
     # STEP 2: SHA-256 verification (fail-closed)
