@@ -26,8 +26,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command "irm 'https://raw.githubu
 This will:
 1. Download `WTStudio-Portable-Windows.zip` from the latest release
 2. Verify SHA-256 checksum
-3. Extract to `%LOCALAPPDATA%\WTStudio`
-4. Create the `wtstudio` command in your User PATH
+3. Validate package manifest
+4. Extract to `%LOCALAPPDATA%\WTStudio`
+5. Create the `wtstudio` command in your User PATH
 
 > **SmartScreen warning:** Windows may show "Unknown publisher" on first run.  
 > Click **More info** → **Run anyway**. This is expected for unsigned community software.
@@ -39,8 +40,17 @@ This will:
 Open a **new** terminal window after installation:
 
 ```powershell
-# Launch GUI
+# Launch Local Web Studio (127.0.0.1:8765)
 wtstudio
+
+# Launch PySide6 Desktop application
+wtstudio desktop
+
+# Check Web Studio server status
+wtstudio status
+
+# Stop Web Studio server
+wtstudio stop
 
 # Check license status
 wtstudio license-status
@@ -89,8 +99,7 @@ Or download and run `uninstall.ps1` from the latest release.
 |---|---|
 | `wtstudio` not found | Open a NEW terminal after install; check User PATH includes `%LOCALAPPDATA%\WTStudio\bin` |
 | SmartScreen blocks app | Click More info → Run anyway |
-| GUI doesn't open | Run `wtstudio license-status` in terminal to see errors |
-| style.qss error (old build) | Re-install using the latest one-command installer |
+| Web Studio doesn't open | Run `wtstudio status` or `wtstudio license-status` in terminal to see errors |
 | Checksum mismatch | Re-download; if persistent, open an issue |
 
 ---
@@ -107,4 +116,4 @@ WTStudio is released under GPL-3.0. See the LICENSE file in the installed bundle
 
 ---
 
-*WTStudio v4.05.2 — Distribution repository (installer only, no source code)*
+*WTStudio v4.05.4 — Distribution repository (installer only, no source code)*

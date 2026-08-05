@@ -23,32 +23,52 @@ Write-Host "  Install dir : $INSTALL_DIR" -ForegroundColor Cyan
 Write-Host "=====================================================" -ForegroundColor Cyan
 Write-Host ""
 
-# 1. Stop running sp.exe processes
+# 1. Stop running WTStudio Web server and desktop processes
 Write-Host "[1/4] Stopping WTStudio processes..." -ForegroundColor Yellow
+$stateFile = "$INSTALL_DIR\runtime\server.json"
+if (Test-Path $stateFile) {
+    try {
+        $stateJson = Get-Content $stateFile -Raw | ConvertFrom-Json
+        if ($stateJson.pid) {
+            Stop-Process -Id $stateJson.pid -Force -ErrorAction SilentlyContinue
+            Write-Host "  Stopped WTStudio Web server PID $($stateJson.pid)"
+        }
+    } catch {}
+}
 $procs = Get-Process -Name "sp" -ErrorAction SilentlyContinue
 if ($procs) {
     $procs | ForEach-Object {
         Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
-        Write-Host "  Stopped PID $($_.Id)"
+        Write-Host "  Stopped Desktop PID $($_.Id)"
     }
     Start-Sleep -Milliseconds 600
 } else {
-    Write-Host "  No running sp.exe processes found."
+    Write-Host "  No running processes found."
 }
 
-# 2. Remove installation bundle
+# 2. Remove installation bundle items while preserving user data
 Write-Host "[2/4] Removing WTStudio installation files..." -ForegroundColor Yellow
 if (Test-Path -LiteralPath $INSTALL_DIR) {
-    Get-ChildItem -LiteralPath $INSTALL_DIR -Recurse -Force -ErrorAction SilentlyContinue |
-        ForEach-Object {
-            try { $_.Attributes = [System.IO.FileAttributes]::Normal } catch {}
+    $bundleItems = @(
+        "$INSTALL_DIR\_internal",
+        "$INSTALL_DIR\wtstudio.exe",
+        "$INSTALL_DIR\sp.exe",
+        "$INSTALL_DIR\ffmpeg",
+        "$INSTALL_DIR\studio_web",
+        "$INSTALL_DIR\web",
+        "$INSTALL_DIR\bin",
+        "$INSTALL_DIR\law.txt",
+        "$INSTALL_DIR\LICENSE",
+        "$INSTALL_DIR\THIRD_PARTY_NOTICES.md"
+    )
+    foreach ($item in $bundleItems) {
+        if (Test-Path -LiteralPath $item) {
+            Get-ChildItem -LiteralPath $item -Recurse -Force -ErrorAction SilentlyContinue |
+                ForEach-Object { try { $_.Attributes = [System.IO.FileAttributes]::Normal } catch {} }
+            Remove-Item -LiteralPath $item -Recurse -Force -ErrorAction SilentlyContinue
         }
-    Remove-Item -LiteralPath $INSTALL_DIR -Recurse -Force -ErrorAction SilentlyContinue
-    if (-not (Test-Path -LiteralPath $INSTALL_DIR)) {
-        Write-Host "  OK  Removed $INSTALL_DIR" -ForegroundColor Green
-    } else {
-        Write-Host "  WARN Some files in $INSTALL_DIR could not be removed (may be in use)." -ForegroundColor DarkYellow
     }
+    Write-Host "  OK  Removed WTStudio runtime bundle." -ForegroundColor Green
 } else {
     Write-Host "  $INSTALL_DIR does not exist - nothing to remove."
 }

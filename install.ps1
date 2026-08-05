@@ -1,5 +1,5 @@
 #Requires -Version 5.1
-# WTStudio One-Command Installer - v4.05.2
+# WTStudio One-Command Installer - v4.05.4
 # Usage:
 #   powershell -NoProfile -ExecutionPolicy Bypass -Command "irm 'https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1' | iex"
 #
@@ -12,7 +12,7 @@ $ErrorActionPreference = 'Stop'
 
 # Configuration
 $DIST_REPO   = "wtrg/wtstudio-distribution"
-$VERSION_TAG = "v4.05.2"
+$VERSION_TAG = "v4.05.4"
 $INSTALL_DIR = "$env:LOCALAPPDATA\WTStudio"
 $BIN_DIR     = "$INSTALL_DIR\bin"
 $ZIP_NAME    = "WTStudio-Portable-Windows.zip"
@@ -22,6 +22,7 @@ $ZIP_URL     = "$BASE_URL/$ZIP_NAME"
 $SUM_URL     = "$BASE_URL/$SUM_NAME"
 $TEMP_ZIP    = [System.IO.Path]::Combine([System.IO.Path]::GetTempPath(), $ZIP_NAME)
 $TEMP_SUM    = [System.IO.Path]::Combine([System.IO.Path]::GetTempPath(), $SUM_NAME)
+$STAGING_DIR = [System.IO.Path]::Combine([System.IO.Path]::GetTempPath(), "WTStudio-Install-Staging")
 
 function Write-Step  { param($n, $msg) Write-Host "[$n] $msg" -ForegroundColor Yellow }
 function Write-OK    { param($msg)     Write-Host "  OK  $msg" -ForegroundColor Green }
@@ -29,25 +30,15 @@ function Write-Warn  { param($msg)     Write-Host "  WARN $msg" -ForegroundColor
 function Write-Fail  { param($msg)     Write-Host "  FAIL $msg" -ForegroundColor Red }
 
 function Remove-TempFiles {
-    foreach ($f in @($TEMP_ZIP, $TEMP_SUM)) {
-        if (Test-Path $f) { Remove-Item $f -Force -ErrorAction SilentlyContinue }
+    foreach ($item in @($TEMP_ZIP, $TEMP_SUM, $STAGING_DIR)) {
+        if (Test-Path $item) { Remove-Item $item -Recurse -Force -ErrorAction SilentlyContinue }
     }
 }
 
 function Invoke-Rollback {
-    Write-Warn "Rolling back partial installation..."
+    Write-Warn "Rolling back installation..."
     Remove-TempFiles
-    $toRemove = @("$INSTALL_DIR\_internal", "$INSTALL_DIR\sp.exe", "$BIN_DIR\wtstudio.cmd", "$BIN_DIR\wtstudio.ps1")
-    foreach ($item in $toRemove) {
-        if (Test-Path $item) { Remove-Item $item -Recurse -Force -ErrorAction SilentlyContinue }
-    }
-    # Remove PATH entry if added
-    $userPath = [Environment]::GetEnvironmentVariable("PATH", [EnvironmentVariableTarget]::User)
-    if ($userPath -match [regex]::Escape($BIN_DIR)) {
-        $newPath = ($userPath -split ';' | Where-Object { $_ -notmatch [regex]::Escape($BIN_DIR) }) -join ';'
-        [Environment]::SetEnvironmentVariable("PATH", $newPath, [EnvironmentVariableTarget]::User)
-    }
-    Write-Warn "Rollback complete."
+    Write-Warn "The existing WTStudio installation was not modified or has been preserved."
     exit 1
 }
 
@@ -62,7 +53,7 @@ Write-Host ""
 
 try {
     # STEP 1: Download
-    Write-Step "1/5" "Downloading WTStudio $VERSION_TAG from GitHub..."
+    Write-Step "1/6" "Downloading WTStudio $VERSION_TAG from GitHub..."
     $wc = New-Object System.Net.WebClient
     $wc.Headers.Add("User-Agent", "WTStudio-Installer/1.0")
     $wc.DownloadFile($ZIP_URL, $TEMP_ZIP)
@@ -70,7 +61,7 @@ try {
     Write-OK "Downloaded $ZIP_NAME ($([math]::Round((Get-Item $TEMP_ZIP).Length / 1MB, 1)) MB)"
 
     # STEP 2: SHA-256 verification (fail-closed)
-    Write-Step "2/5" "Verifying SHA-256 checksum..."
+    Write-Step "2/6" "Verifying SHA-256 checksum..."
     $actualHash = (Get-FileHash -Path $TEMP_ZIP -Algorithm SHA256).Hash.ToLower()
 
     if (-not (Test-Path $TEMP_SUM)) {
@@ -99,8 +90,61 @@ try {
     }
     Write-OK "SHA-256 verified: $actualHash"
 
-    # STEP 3: Extract
-    Write-Step "3/5" "Extracting to $INSTALL_DIR ..."
+    # STEP 3: ZIP Manifest Inspection & Staging Extraction
+    Write-Step "3/6" "Inspecting ZIP package manifest..."
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $zipArchive = [System.IO.Compression.ZipFile]::OpenRead($TEMP_ZIP)
+    $entryNames = $zipArchive.Entries | ForEach-Object { $_.FullName -replace '\\', '/' }
+    $zipArchive.Dispose()
+
+    $hasWebExe = $entryNames | Where-Object { $_ -match '(^|/)wtstudio\.exe$' }
+    $hasDesktopExe = $entryNames | Where-Object { $_ -match '(^|/)sp\.exe$' }
+    $hasFfmpeg = $entryNames | Where-Object { $_ -match '(^|/)ffmpeg/ffmpeg\.exe$' }
+    $hasFfprobe = $entryNames | Where-Object { $_ -match '(^|/)ffmpeg/ffprobe\.exe$' }
+    $hasFrontend = $entryNames | Where-Object { $_ -match '(^|/)index\.html$' }
+
+    if (-not $hasWebExe) {
+        Write-Fail "The release package is invalid: wtstudio.exe is missing."
+        Write-Fail "The existing WTStudio installation was not modified."
+        Remove-TempFiles
+        exit 1
+    }
+    if (-not $hasDesktopExe -or -not $hasFfmpeg -or -not $hasFfprobe -or -not $hasFrontend) {
+        Write-Fail "The release package is incomplete or corrupted."
+        Write-Fail "The existing WTStudio installation was not modified."
+        Remove-TempFiles
+        exit 1
+    }
+    Write-OK "ZIP manifest verified (wtstudio.exe, sp.exe, ffmpeg, frontend assets present)"
+
+    # Extract to Staging
+    if (Test-Path $STAGING_DIR) { Remove-Item $STAGING_DIR -Recurse -Force -ErrorAction SilentlyContinue }
+    New-Item -ItemType Directory -Path $STAGING_DIR -Force | Out-Null
+    [System.IO.Compression.ZipFile]::ExtractToDirectory($TEMP_ZIP, $STAGING_DIR)
+
+    # Detect bundle root within staging
+    $sourceRoot = $STAGING_DIR
+    $subWtExe = Get-ChildItem -Path $STAGING_DIR -Filter "wtstudio.exe" -Recurse | Select-Object -First 1
+    if ($subWtExe) {
+        $sourceRoot = $subWtExe.Directory.FullName
+    }
+
+    # Verify staged files
+    if (-not (Test-Path "$sourceRoot\wtstudio.exe") -or -not (Test-Path "$sourceRoot\sp.exe")) {
+        Write-Fail "Staged payload validation failed."
+        Remove-TempFiles
+        exit 1
+    }
+
+    # STEP 4: Stop running processes & Upgrade Cleanup
+    Write-Step "4/6" "Stopping processes and cleaning previous runtime..."
+    $stateFile = "$INSTALL_DIR\runtime\server.json"
+    if (Test-Path $stateFile) {
+        try {
+            $wtExe = "$INSTALL_DIR\wtstudio.exe"
+            if (Test-Path $wtExe) { & "$wtExe" stop | Out-Null }
+        } catch {}
+    }
     Get-Process -Name "sp" -ErrorAction SilentlyContinue | ForEach-Object {
         Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
     }
@@ -109,33 +153,49 @@ try {
     New-Item -ItemType Directory -Path $INSTALL_DIR -Force | Out-Null
     New-Item -ItemType Directory -Path $BIN_DIR -Force | Out-Null
 
-    $bundleItems = @("$INSTALL_DIR\_internal", "$INSTALL_DIR\sp.exe",
-                     "$INSTALL_DIR\law.txt", "$INSTALL_DIR\LICENSE",
-                     "$INSTALL_DIR\THIRD_PARTY_NOTICES.md")
-    foreach ($item in $bundleItems) {
+    # Allowlist of runtime bundle items to clean (preserving user data / license)
+    $runtimeItems = @(
+        "$INSTALL_DIR\_internal",
+        "$INSTALL_DIR\wtstudio.exe",
+        "$INSTALL_DIR\sp.exe",
+        "$INSTALL_DIR\ffmpeg",
+        "$INSTALL_DIR\studio_web",
+        "$INSTALL_DIR\web",
+        "$INSTALL_DIR\law.txt",
+        "$INSTALL_DIR\LICENSE",
+        "$INSTALL_DIR\THIRD_PARTY_NOTICES.md"
+    )
+    foreach ($item in $runtimeItems) {
         if (Test-Path $item) { Remove-Item $item -Recurse -Force -ErrorAction SilentlyContinue }
     }
 
-    Add-Type -AssemblyName System.IO.Compression.FileSystem
-    [System.IO.Compression.ZipFile]::ExtractToDirectory($TEMP_ZIP, $INSTALL_DIR)
-    Write-OK "Extracted to $INSTALL_DIR"
+    # Copy new bundle items to installation directory
+    Get-ChildItem -Path $sourceRoot | ForEach-Object {
+        Copy-Item -Path $_.FullName -Destination $INSTALL_DIR -Recurse -Force
+    }
+    Write-OK "Copied new WTStudio runtime to $INSTALL_DIR"
 
-    # STEP 4: Create wtstudio shim
-    Write-Step "4/5" "Creating wtstudio command shim..."
-    $exePath = "$INSTALL_DIR\sp.exe"
-    if (-not (Test-Path $exePath)) {
-        throw "Extraction succeeded but sp.exe not found at $exePath - ZIP structure may have changed."
+    # STEP 5: Create wtstudio shims
+    Write-Step "5/6" "Generating command shims..."
+    $webExePath = "$INSTALL_DIR\wtstudio.exe"
+    $desktopExePath = "$INSTALL_DIR\sp.exe"
+
+    if (-not (Test-Path -LiteralPath $webExePath)) {
+        throw "wtstudio.exe was not installed."
+    }
+    if (-not (Test-Path -LiteralPath $desktopExePath)) {
+        throw "sp.exe was not installed."
     }
 
-    $cmdContent = "@echo off`r`n`"$exePath`" %*"
+    $cmdContent = "@echo off`r`n`"$INSTALL_DIR\wtstudio.exe`" %*"
     Set-Content -Path "$BIN_DIR\wtstudio.cmd" -Value $cmdContent -Encoding ASCII
 
-    $ps1Content = "& `"$exePath`" @args"
-    Set-Content -Path "$BIN_DIR\wtstudio.ps1" -Value $ps1Content -Encoding UTF8
+    $ps1Content = "& `"$env:LOCALAPPDATA\WTStudio\wtstudio.exe`" @args"
+    Set-Content -Path "$BIN_DIR\wtstudio.ps1" -Value $ps1Content -Encoding ASCII
     Write-OK "Created wtstudio.cmd and wtstudio.ps1 in $BIN_DIR"
 
-    # STEP 5: Update User PATH
-    Write-Step "5/5" "Updating User PATH..."
+    # STEP 6: Update User PATH
+    Write-Step "6/6" "Updating User PATH..."
     $userPath = [Environment]::GetEnvironmentVariable("PATH", [EnvironmentVariableTarget]::User)
     $pathParts = $userPath -split ';' | Where-Object { $_ -ne '' }
     $pathParts = $pathParts | Where-Object { $_ -notmatch [regex]::Escape($BIN_DIR) }
@@ -154,9 +214,8 @@ try {
     Write-Host ""
     Write-Host "    wtstudio" -ForegroundColor Cyan
     Write-Host ""
-    Write-Host "First run will ask for license activation." -ForegroundColor DarkGray
-    Write-Host "SmartScreen may show an unknown publisher warning." -ForegroundColor DarkGray
-    Write-Host "Click 'More info' then 'Run anyway' if prompted." -ForegroundColor DarkGray
+    Write-Host "To open the desktop app, run:" -ForegroundColor White
+    Write-Host "    wtstudio desktop" -ForegroundColor Cyan
     Write-Host ""
 
 } catch {
