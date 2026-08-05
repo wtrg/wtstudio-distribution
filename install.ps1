@@ -12,7 +12,7 @@ $ErrorActionPreference = 'Stop'
 
 # Configuration
 $DIST_REPO   = "wtrg/wtstudio-distribution"
-$VERSION_TAG = "v4.05.6"
+$VERSION_TAG = "v4.05.5"
 $INSTALL_DIR = "$env:LOCALAPPDATA\WTStudio"
 $BIN_DIR     = "$INSTALL_DIR\bin"
 $ZIP_NAME    = "WTStudio-Portable-Windows.zip"
