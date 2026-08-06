@@ -1,0 +1,6 @@
+# Distribution repo - only contains installer and releases
+# Source code is in private repo: wtstudio-source
+
+*.zip
+!install.ps1
+!README.md
