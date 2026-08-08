@@ -17,7 +17,7 @@ Write-Host ""
 # Download
 Write-Host "[1/5] Tải WT Studio..." -ForegroundColor Yellow
 $tempZip = "$env:TEMP\WTStudio.zip"
-$url = "https://github.com/wtrg/wtstudio-distribution/releases/download/v2026.08.07/WTStudio-2026.08.07.zip"
+$url = "https://github.com/wtrg/wtstudio-distribution/releases/download/v2026.08.08/WTStudio-2026.08.08.zip"
 
 try {
     Invoke-WebRequest -Uri $url -OutFile $tempZip -UseBasicParsing
