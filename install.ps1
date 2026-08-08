@@ -28,6 +28,12 @@ Invoke-WebRequest -Uri $releaseAsset.browser_download_url -OutFile $tempZip -Use
 
 Write-Host "[3/5] Preserving user data and installing..." -ForegroundColor Yellow
 $preservePaths = @("logs", "tmp", "models", "runtime", "videotrans\cfg.json", "videotrans\params.json")
+$runningProcesses = @(Get-Process -Name "wtstudio" -ErrorAction SilentlyContinue)
+if ($runningProcesses.Count -gt 0) {
+    Write-Host "Stopping running WTStudio processes..." -ForegroundColor Yellow
+    $runningProcesses | Stop-Process -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 2
+}
 New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
 foreach ($relativePath in $preservePaths) {
     $sourcePath = Join-Path $InstallDir $relativePath
@@ -38,7 +44,18 @@ foreach ($relativePath in $preservePaths) {
     }
 }
 if (Test-Path -LiteralPath $InstallDir) {
-    Remove-Item -LiteralPath $InstallDir -Recurse -Force
+    $removed = $false
+    for ($attempt = 1; $attempt -le 10; $attempt++) {
+        try {
+            Remove-Item -LiteralPath $InstallDir -Recurse -Force -ErrorAction Stop
+            $removed = $true
+            break
+        } catch {
+            if ($attempt -eq 10) { throw }
+            Start-Sleep -Seconds 1
+        }
+    }
+    if (-not $removed) { throw "Could not replace the existing WTStudio installation." }
 }
 New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
 Expand-Archive -LiteralPath $tempZip -DestinationPath $InstallDir -Force
