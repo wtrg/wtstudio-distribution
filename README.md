@@ -27,7 +27,7 @@ wtstudio
 
 ## Cài đặt thủ công:
 
-1. Tải file: [WTStudio-2026.08.07.zip](https://github.com/wtrg/wtstudio-distribution/releases/download/v2026.08.07/WTStudio-2026.08.07.zip)
+1. Tải bản mới nhất: [WTStudio-Portable-Windows.zip](https://github.com/wtrg/wtstudio-distribution/releases/latest/download/WTStudio-Portable-Windows.zip)
 2. Giải nén vào thư mục bất kỳ
 3. Chạy `wtstudio.exe`
 4. Mở trình duyệt: http://localhost:8765
