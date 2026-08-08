@@ -1,6 +1,6 @@
 # WT Studio - Video Vietnamese Localization Tool
 
-**Current release: v1.12**
+**Current release: v1.13**
 
 ## Cài đặt nhanh (1 lệnh duy nhất)
 
