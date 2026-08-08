@@ -58,7 +58,15 @@ if (Test-Path -LiteralPath $InstallDir) {
     if (-not $removed) { throw "Could not replace the existing WTStudio installation." }
 }
 New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
-Expand-Archive -LiteralPath $tempZip -DestinationPath $InstallDir -Force
+$tempExtract = Join-Path $env:TEMP "WTStudio-extract-$([guid]::NewGuid().ToString('N'))"
+New-Item -ItemType Directory -Path $tempExtract -Force | Out-Null
+Expand-Archive -LiteralPath $tempZip -DestinationPath $tempExtract -Force
+$packageRoot = Join-Path $tempExtract "WTStudio"
+if (-not (Test-Path -LiteralPath (Join-Path $packageRoot "wtstudio.exe"))) {
+    $packageRoot = $tempExtract
+}
+Get-ChildItem -LiteralPath $packageRoot -Force | Move-Item -Destination $InstallDir -Force
+Remove-Item -LiteralPath $tempExtract -Recurse -Force
 Remove-Item -LiteralPath $tempZip -Force -ErrorAction SilentlyContinue
 
 foreach ($relativePath in $preservePaths) {
