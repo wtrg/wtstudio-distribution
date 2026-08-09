@@ -29,10 +29,10 @@ wtstudio
 
 ## Cài đặt thủ công:
 
-1. Tải bản mới nhất: [WTStudio-Portable-Windows.zip](https://github.com/wtrg/wtstudio-distribution/releases/latest/download/WTStudio-Portable-Windows.zip)
+1. Tải ZIP mới nhất tại [GitHub Releases](https://github.com/wtrg/wtstudio-distribution/releases)
 2. Giải nén vào thư mục bất kỳ
 3. Chạy `wtstudio.exe`
-4. Mở trình duyệt: http://localhost:8765
+4. `wtstudio.exe` tự mở trình duyệt trên cổng loopback khả dụng.
 
 ---
 
@@ -47,7 +47,7 @@ wtstudio
 
 ## Hỗ trợ:
 
-- GitHub: https://github.com/wtrg/wtstudio-source
+- GitHub Releases: https://github.com/wtrg/wtstudio-distribution/releases
 - Email: support@example.com
 
 ---

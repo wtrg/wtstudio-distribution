@@ -84,10 +84,7 @@ Set-Content -LiteralPath (Join-Path $InstallDir "runtime\installed_release_versi
 Write-Host "[4/5] Creating launcher..." -ForegroundColor Yellow
 $cmdContent = @"
 @echo off
-start "" "%~dp0wtstudio.exe"
-timeout /t 2 /nobreak >nul
-start http://localhost:8765
-exit
+"%~dp0wtstudio.exe" %*
 "@
 $cmdContent | Out-File (Join-Path $InstallDir "wtstudio.cmd") -Encoding ASCII -Force
 
