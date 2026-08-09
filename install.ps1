@@ -65,7 +65,10 @@ $packageRoot = Join-Path $tempExtract "WTStudio"
 if (-not (Test-Path -LiteralPath (Join-Path $packageRoot "wtstudio.exe"))) {
     $packageRoot = $tempExtract
 }
-Get-ChildItem -LiteralPath $packageRoot -Force | Move-Item -Destination $InstallDir -Force
+foreach ($item in Get-ChildItem -LiteralPath $packageRoot -Force) {
+    $dest = Join-Path $InstallDir $item.Name
+    Copy-Item -LiteralPath $item.FullName -Destination $dest -Recurse -Force
+}
 Remove-Item -LiteralPath $tempExtract -Recurse -Force
 Remove-Item -LiteralPath $tempZip -Force -ErrorAction SilentlyContinue
 
