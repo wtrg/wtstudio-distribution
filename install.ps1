@@ -17,11 +17,16 @@ $release = Invoke-RestMethod -Uri $releaseApi -Headers @{
     "User-Agent" = "WTStudio-Installer"
     "Accept" = "application/vnd.github+json"
 }
-$releaseAsset = $release.assets | Where-Object { $_.name -like '*.zip' } | Select-Object -First 1
+$releaseVersion = $release.tag_name.TrimStart('v')
+$releaseAsset = $release.assets |
+    Where-Object { $_.name -like "WTStudio-$releaseVersion*.zip" } |
+    Select-Object -First 1
+if (-not $releaseAsset) {
+    $releaseAsset = $release.assets | Where-Object { $_.name -like '*.zip' } | Select-Object -First 1
+}
 if (-not $releaseAsset) {
     throw "No ZIP asset found in the latest distribution release."
 }
-$releaseVersion = $release.tag_name.TrimStart('v')
 
 Write-Host "[2/5] Downloading WTStudio $releaseVersion..." -ForegroundColor Yellow
 Invoke-WebRequest -Uri $releaseAsset.browser_download_url -OutFile $tempZip -UseBasicParsing

@@ -1,58 +1,68 @@
-# WT Studio - Video Vietnamese Localization Tool
+# WTStudio — Công cụ Việt hóa video
 
-**Current release: v1.16**
+WTStudio hỗ trợ tải video, nhận diện lời nói, dịch, lồng tiếng và xuất video
+trên máy local.
 
-## Cài đặt nhanh (1 lệnh duy nhất)
+## Cài nhanh trên Windows
 
-### PowerShell:
+Mở PowerShell:
+
 ```powershell
 irm "https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1" | iex
 ```
 
-### CMD:
-```cmd
-powershell -Command "irm 'https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1' | iex"
-```
+Mở PowerShell/CMD mới rồi chạy:
 
----
-
-## Sau khi cài đặt:
-
-**Mở PowerShell/CMD mới và gõ:**
 ```powershell
 wtstudio
 ```
 
-**Trình duyệt tự động mở!** 🎉
+Nếu muốn chạy từng bước trong PowerShell:
 
----
+```powershell
+$installer = Join-Path $env:TEMP "wtstudio-install.ps1"
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1" -OutFile $installer
+powershell.exe -ExecutionPolicy Bypass -File $installer
+```
 
-## Cài đặt thủ công:
+Hoặc mở Command Prompt (CMD):
 
-1. Tải ZIP mới nhất tại [GitHub Releases](https://github.com/wtrg/wtstudio-distribution/releases)
-2. Giải nén vào thư mục bất kỳ
-3. Chạy `wtstudio.exe`
-4. `wtstudio.exe` tự mở trình duyệt trên cổng loopback khả dụng.
+```cmd
+curl.exe -L "https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1" -o "%TEMP%\wtstudio-install.ps1"
+powershell.exe -ExecutionPolicy Bypass -File "%TEMP%\wtstudio-install.ps1"
+```
 
----
+Sau khi cài xong, đóng và mở lại PowerShell/CMD rồi chạy `wtstudio`.
 
-## Yêu cầu:
+## Chạy từ source trên Windows, macOS hoặc Linux
 
-- Windows 10/11 64-bit
-- 4GB RAM (khuyến nghị 8GB)
-- Kết nối Internet (lần đầu cần tải models ~2GB)
-- NVIDIA GPU khuyến nghị (không bắt buộc)
+Yêu cầu Git, Python 3.10+, Node.js/npm, FFmpeg và `uv`:
 
----
+```bash
+git clone https://github.com/wtrg/wtstudio-source.git
+cd wtstudio-source
+uv sync --python 3.10
+cd studio_web && npm install && npm run build
+cd .. && uv run python wtstudio.py
+```
 
-## Hỗ trợ:
+## Mua license key
 
-- GitHub Releases: https://github.com/wtrg/wtstudio-distribution/releases
-- Email: support@example.com
+Liên hệ bot Telegram: [@wtstudio_shop_bot](https://t.me/wtstudio_shop_bot).
 
----
+Nếu thanh toán xong nhưng chưa nhận key, dùng `/orders` rồi `/licenses` trong
+bot; nếu mua ẩn danh trên web, mở claim link trên trang thanh toán.
 
-## Lưu ý:
+## Tải bản phát hành
 
-- Lần chạy đầu tiên sẽ tự động tải models (~2GB)
-- Cần license key để sử dụng (liên hệ admin)
+[GitHub Releases](https://github.com/wtrg/wtstudio-distribution/releases)
+
+Xem thêm file [HUONG_DAN_CAI_DAT.txt](HUONG_DAN_CAI_DAT.txt) trong source để
+biết cách dùng Docker và kích hoạt license.
+
+## Yêu cầu tối thiểu
+
+- Windows 10/11 64-bit, macOS hoặc Linux
+- RAM 4 GB (khuyến nghị 8 GB+)
+- Internet cho lần đầu tải model
+- GPU NVIDIA/CUDA là tùy chọn
