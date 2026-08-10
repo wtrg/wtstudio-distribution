@@ -17,6 +17,23 @@ Mở PowerShell/CMD mới rồi chạy:
 wtstudio
 ```
 
+Nếu muốn chạy từng bước trong PowerShell:
+
+```powershell
+$installer = Join-Path $env:TEMP "wtstudio-install.ps1"
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1" -OutFile $installer
+powershell.exe -ExecutionPolicy Bypass -File $installer
+```
+
+Hoặc mở Command Prompt (CMD):
+
+```cmd
+curl.exe -L "https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1" -o "%TEMP%\wtstudio-install.ps1"
+powershell.exe -ExecutionPolicy Bypass -File "%TEMP%\wtstudio-install.ps1"
+```
+
+Sau khi cài xong, đóng và mở lại PowerShell/CMD rồi chạy `wtstudio`.
+
 ## Chạy từ source trên Windows, macOS hoặc Linux
 
 Yêu cầu Git, Python 3.10+, Node.js/npm, FFmpeg và `uv`:
