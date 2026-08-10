@@ -1,0 +1,23 @@
+WTStudio — HƯỚNG DẪN NHANH
+==========================
+
+Cài Windows bằng PowerShell:
+  irm "https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1" | iex
+  wtstudio
+
+Chạy từ source trên Windows/macOS/Linux:
+  git clone https://github.com/wtrg/wtstudio-source.git
+  cd wtstudio-source
+  uv sync --python 3.10
+  cd studio_web && npm install && npm run build
+  cd .. && uv run python wtstudio.py
+
+Mua license key:
+  Bot Telegram: @wtstudio_shop_bot
+  Link: https://t.me/wtstudio_shop_bot
+
+Thanh toán xong chưa thấy key:
+  Gửi /orders, sau đó /licenses trong bot; hoặc mở claim link trên trang web.
+
+Source: https://github.com/wtrg/wtstudio-source
+Releases: https://github.com/wtrg/wtstudio-distribution/releases

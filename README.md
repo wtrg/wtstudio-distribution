@@ -1,58 +1,51 @@
-# WT Studio - Video Vietnamese Localization Tool
+# WTStudio — Công cụ Việt hóa video
 
-**Current release: v1.16**
+WTStudio hỗ trợ tải video, nhận diện lời nói, dịch, lồng tiếng và xuất video
+trên máy local.
 
-## Cài đặt nhanh (1 lệnh duy nhất)
+## Cài nhanh trên Windows
 
-### PowerShell:
+Mở PowerShell:
+
 ```powershell
 irm "https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1" | iex
 ```
 
-### CMD:
-```cmd
-powershell -Command "irm 'https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1' | iex"
-```
+Mở PowerShell/CMD mới rồi chạy:
 
----
-
-## Sau khi cài đặt:
-
-**Mở PowerShell/CMD mới và gõ:**
 ```powershell
 wtstudio
 ```
 
-**Trình duyệt tự động mở!** 🎉
+## Chạy từ source trên Windows, macOS hoặc Linux
 
----
+Yêu cầu Git, Python 3.10+, Node.js/npm, FFmpeg và `uv`:
 
-## Cài đặt thủ công:
+```bash
+git clone https://github.com/wtrg/wtstudio-source.git
+cd wtstudio-source
+uv sync --python 3.10
+cd studio_web && npm install && npm run build
+cd .. && uv run python wtstudio.py
+```
 
-1. Tải ZIP mới nhất tại [GitHub Releases](https://github.com/wtrg/wtstudio-distribution/releases)
-2. Giải nén vào thư mục bất kỳ
-3. Chạy `wtstudio.exe`
-4. `wtstudio.exe` tự mở trình duyệt trên cổng loopback khả dụng.
+## Mua license key
 
----
+Liên hệ bot Telegram: [@wtstudio_shop_bot](https://t.me/wtstudio_shop_bot).
 
-## Yêu cầu:
+Nếu thanh toán xong nhưng chưa nhận key, dùng `/orders` rồi `/licenses` trong
+bot; nếu mua ẩn danh trên web, mở claim link trên trang thanh toán.
 
-- Windows 10/11 64-bit
-- 4GB RAM (khuyến nghị 8GB)
-- Kết nối Internet (lần đầu cần tải models ~2GB)
-- NVIDIA GPU khuyến nghị (không bắt buộc)
+## Tải bản phát hành
 
----
+[GitHub Releases](https://github.com/wtrg/wtstudio-distribution/releases)
 
-## Hỗ trợ:
+Xem thêm file [HUONG_DAN_CAI_DAT.txt](HUONG_DAN_CAI_DAT.txt) trong source để
+biết cách dùng Docker và kích hoạt license.
 
-- GitHub Releases: https://github.com/wtrg/wtstudio-distribution/releases
-- Email: support@example.com
+## Yêu cầu tối thiểu
 
----
-
-## Lưu ý:
-
-- Lần chạy đầu tiên sẽ tự động tải models (~2GB)
-- Cần license key để sử dụng (liên hệ admin)
+- Windows 10/11 64-bit, macOS hoặc Linux
+- RAM 4 GB (khuyến nghị 8 GB+)
+- Internet cho lần đầu tải model
+- GPU NVIDIA/CUDA là tùy chọn
