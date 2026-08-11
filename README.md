@@ -8,7 +8,7 @@ trên máy local.
 Mở PowerShell:
 
 ```powershell
-irm "https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1" | iex
+irm "https://raw.githubusercontent.com/tranvantruonguser-cmd/wtrg-dis-2/main/install.ps1" | iex
 ```
 
 Mở PowerShell/CMD mới rồi chạy:
@@ -21,14 +21,14 @@ Nếu muốn chạy từng bước trong PowerShell:
 
 ```powershell
 $installer = Join-Path $env:TEMP "wtstudio-install.ps1"
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1" -OutFile $installer
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/tranvantruonguser-cmd/wtrg-dis-2/main/install.ps1" -OutFile $installer
 powershell.exe -ExecutionPolicy Bypass -File $installer
 ```
 
 Hoặc mở Command Prompt (CMD):
 
 ```cmd
-curl.exe -L "https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1" -o "%TEMP%\wtstudio-install.ps1"
+curl.exe -L "https://raw.githubusercontent.com/tranvantruonguser-cmd/wtrg-dis-2/main/install.ps1" -o "%TEMP%\wtstudio-install.ps1"
 powershell.exe -ExecutionPolicy Bypass -File "%TEMP%\wtstudio-install.ps1"
 ```
 
@@ -55,7 +55,7 @@ bot; nếu mua ẩn danh trên web, mở claim link trên trang thanh toán.
 
 ## Tải bản phát hành
 
-[GitHub Releases](https://github.com/wtrg/wtstudio-distribution/releases)
+[GitHub Releases](https://github.com/tranvantruonguser-cmd/wtrg-dis-2/releases)
 
 Xem thêm file [HUONG_DAN_CAI_DAT.txt](HUONG_DAN_CAI_DAT.txt) trong source để
 biết cách dùng Docker và kích hoạt license.

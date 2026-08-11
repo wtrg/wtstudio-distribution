@@ -1,5 +1,5 @@
 # WTStudio public installer.
-# Downloads the latest release from wtrg/wtstudio-distribution.
+# Downloads the latest release from tranvantruonguser-cmd/wtrg-dis-2.
 
 param(
     [string]$InstallDir = "$env:LOCALAPPDATA\WTStudio"
@@ -7,9 +7,28 @@ param(
 
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
-$releaseApi = "https://api.github.com/repos/wtrg/wtstudio-distribution/releases/latest"
-$tempZip = Join-Path $env:TEMP "WTStudio-latest.zip"
-$backupDir = Join-Path $env:TEMP "WTStudio-install-backup-$([guid]::NewGuid().ToString('N'))"
+$releaseApi = "https://api.github.com/repos/tranvantruonguser-cmd/wtrg-dis-2/releases/latest"
+$workspaceRoot = $env:PYVIDEOTRANS_UPDATE_TEMP
+if (-not $workspaceRoot) {
+    $workspaceRoot = Get-PSDrive -PSProvider FileSystem |
+        Where-Object { $_.Free -gt 0 -and $_.Root } |
+        Sort-Object Free -Descending |
+        Select-Object -First 1 -ExpandProperty Root
+}
+if (-not $workspaceRoot) {
+    $workspaceRoot = $env:TEMP
+}
+$workspace = Join-Path $workspaceRoot "WTStudio-install-$([guid]::NewGuid().ToString('N'))"
+$tempZip = Join-Path $workspace "WTStudio-latest.zip"
+$tempExtract = Join-Path $workspace "extract"
+New-Item -ItemType Directory -Path $workspace -Force | Out-Null
+
+trap {
+    if (Test-Path -LiteralPath $workspace) {
+        Remove-Item -LiteralPath $workspace -Recurse -Force -ErrorAction SilentlyContinue
+    }
+    throw
+}
 
 Write-Host "WTStudio installer" -ForegroundColor Cyan
 Write-Host "[1/5] Checking latest release..." -ForegroundColor Yellow
@@ -39,55 +58,34 @@ if ($runningProcesses.Count -gt 0) {
     $runningProcesses | Stop-Process -Force -ErrorAction SilentlyContinue
     Start-Sleep -Seconds 2
 }
-New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
-foreach ($relativePath in $preservePaths) {
-    $sourcePath = Join-Path $InstallDir $relativePath
-    if (Test-Path -LiteralPath $sourcePath) {
-        $backupPath = Join-Path $backupDir $relativePath
-        New-Item -ItemType Directory -Path (Split-Path $backupPath -Parent) -Force | Out-Null
-        Copy-Item -LiteralPath $sourcePath -Destination $backupPath -Recurse -Force
-    }
-}
-if (Test-Path -LiteralPath $InstallDir) {
-    $removed = $false
-    for ($attempt = 1; $attempt -le 10; $attempt++) {
-        try {
-            Remove-Item -LiteralPath $InstallDir -Recurse -Force -ErrorAction Stop
-            $removed = $true
-            break
-        } catch {
-            if ($attempt -eq 10) { throw }
-            Start-Sleep -Seconds 1
-        }
-    }
-    if (-not $removed) { throw "Could not replace the existing WTStudio installation." }
-}
 New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
-$tempExtract = Join-Path $env:TEMP "WTStudio-extract-$([guid]::NewGuid().ToString('N'))"
 New-Item -ItemType Directory -Path $tempExtract -Force | Out-Null
 Expand-Archive -LiteralPath $tempZip -DestinationPath $tempExtract -Force
 $packageRoot = Join-Path $tempExtract "WTStudio"
 if (-not (Test-Path -LiteralPath (Join-Path $packageRoot "wtstudio.exe"))) {
     $packageRoot = $tempExtract
 }
-foreach ($item in Get-ChildItem -LiteralPath $packageRoot -Force) {
-    $dest = Join-Path $InstallDir $item.Name
-    Copy-Item -LiteralPath $item.FullName -Destination $dest -Recurse -Force
-}
-Remove-Item -LiteralPath $tempExtract -Recurse -Force
-Remove-Item -LiteralPath $tempZip -Force -ErrorAction SilentlyContinue
-
-foreach ($relativePath in $preservePaths) {
-    $backupPath = Join-Path $backupDir $relativePath
-    if (Test-Path -LiteralPath $backupPath) {
-        $targetPath = Join-Path $InstallDir $relativePath
-        New-Item -ItemType Directory -Path (Split-Path $targetPath -Parent) -Force | Out-Null
-        Copy-Item -LiteralPath $backupPath -Destination $targetPath -Recurse -Force
+Get-ChildItem -LiteralPath $packageRoot -Recurse -File -Force | ForEach-Object {
+    $relativePath = $_.FullName.Substring($packageRoot.Length + 1)
+    $shouldPreserve = $false
+    foreach ($preservePath in $preservePaths) {
+        if ($relativePath -eq $preservePath -or $relativePath.StartsWith(
+            "$preservePath\", [System.StringComparison]::OrdinalIgnoreCase
+        )) {
+            $shouldPreserve = $true
+            break
+        }
+    }
+    if (-not $shouldPreserve) {
+        $destination = Join-Path $InstallDir $relativePath
+        $destinationDir = Split-Path $destination -Parent
+        New-Item -ItemType Directory -Path $destinationDir -Force | Out-Null
+        Copy-Item -LiteralPath $_.FullName -Destination $destination -Force
     }
 }
-Remove-Item -LiteralPath $backupDir -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Path (Join-Path $InstallDir "runtime") -Force | Out-Null
 Set-Content -LiteralPath (Join-Path $InstallDir "runtime\installed_release_version.txt") -Value $releaseVersion -Encoding UTF8
+Remove-Item -LiteralPath $workspace -Recurse -Force -ErrorAction SilentlyContinue
 
 Write-Host "[4/5] Creating launcher..." -ForegroundColor Yellow
 $cmdContent = @"
