@@ -11,20 +11,50 @@ $releaseApi = "https://api.github.com/repos/wtrg/wtstudio-distribution/releases/
 $tempZip = Join-Path $env:TEMP "WTStudio-latest.zip"
 $backupDir = Join-Path $env:TEMP "WTStudio-install-backup-$([guid]::NewGuid().ToString('N'))"
 
+function Get-Sha256Hex {
+    param([string]$Path)
+    $stream = $null
+    $sha = $null
+    try {
+        $stream = [IO.File]::OpenRead($Path)
+        $sha = [Security.Cryptography.SHA256]::Create()
+        return ([BitConverter]::ToString($sha.ComputeHash($stream))).Replace('-', '').ToLowerInvariant()
+    } finally {
+        if ($sha) { $sha.Dispose() }
+        if ($stream) { $stream.Dispose() }
+    }
+}
+
 Write-Host "WTStudio installer" -ForegroundColor Cyan
 Write-Host "[1/5] Checking latest release..." -ForegroundColor Yellow
 $release = Invoke-RestMethod -Uri $releaseApi -Headers @{
     "User-Agent" = "WTStudio-Installer"
     "Accept" = "application/vnd.github+json"
 }
-$releaseAsset = $release.assets | Where-Object { $_.name -like '*.zip' } | Select-Object -First 1
-if (-not $releaseAsset) {
-    throw "No ZIP asset found in the latest distribution release."
-}
 $releaseVersion = $release.tag_name.TrimStart('v')
+$releaseAsset = $release.assets |
+    Where-Object { $_.name -like "WTStudio-$releaseVersion*.zip" -and $_.name -notlike '*Delta*' } |
+    Select-Object -First 1
+if (-not $releaseAsset) {
+    $releaseAsset = $release.assets | Where-Object { $_.name -like '*.zip' -and $_.name -notlike '*Delta*' } | Select-Object -First 1
+}
+if (-not $releaseAsset) {
+    throw "No full ZIP asset found in the latest distribution release."
+}
 
 Write-Host "[2/5] Downloading WTStudio $releaseVersion..." -ForegroundColor Yellow
 Invoke-WebRequest -Uri $releaseAsset.browser_download_url -OutFile $tempZip -UseBasicParsing
+
+if ($releaseAsset.size -and (Get-Item -LiteralPath $tempZip).Length -ne [int64]$releaseAsset.size) {
+    throw "Downloaded file size does not match the GitHub release asset."
+}
+if ($releaseAsset.digest -and $releaseAsset.digest.StartsWith("sha256:")) {
+    $expectedHash = $releaseAsset.digest.Substring(7).ToLowerInvariant()
+    $actualHash = Get-Sha256Hex $tempZip
+    if ($actualHash -ne $expectedHash) {
+        throw "Downloaded file checksum does not match the GitHub release asset."
+    }
+}
 
 Write-Host "[3/5] Preserving user data and installing..." -ForegroundColor Yellow
 $preservePaths = @("logs", "tmp", "models", "runtime", "videotrans\cfg.json", "videotrans\params.json")
