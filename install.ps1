@@ -96,6 +96,18 @@ $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
 if ($userPath -notlike "*$InstallDir*") {
     [Environment]::SetEnvironmentVariable("Path", "$userPath;$InstallDir", "User")
 }
+# Keep the shell that executed `irm ... | iex` usable immediately.  Updating
+# the User-scoped environment variable only affects processes created later;
+# the current PowerShell process keeps its old PATH otherwise, so `wtstudio`
+# fails until the user opens another terminal.
+$currentPathEntries = @($env:Path -split ';' | Where-Object { $_ })
+$installPath = $InstallDir.TrimEnd('\')
+$pathAlreadyLoaded = $currentPathEntries | Where-Object {
+    $_.TrimEnd('\') -ieq $installPath
+}
+if (-not $pathAlreadyLoaded) {
+    $env:Path = "$InstallDir;$env:Path"
+}
 $desktop = [Environment]::GetFolderPath("Desktop")
 $shell = New-Object -ComObject WScript.Shell
 $shortcut = $shell.CreateShortcut((Join-Path $desktop "WT Studio.lnk"))
