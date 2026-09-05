@@ -2,7 +2,8 @@
 # Downloads the latest release from wtrg/wtstudio-distribution.
 
 param(
-    [string]$InstallDir = "$env:LOCALAPPDATA\WTStudio"
+    [string]$InstallDir = "$env:LOCALAPPDATA\WTStudio",
+    [switch]$EnableStartup
 )
 
 $ErrorActionPreference = "Stop"
@@ -144,6 +145,18 @@ $shortcut = $shell.CreateShortcut((Join-Path $desktop "WT Studio.lnk"))
 $shortcut.TargetPath = Join-Path $InstallDir "wtstudio.exe"
 $shortcut.WorkingDirectory = $InstallDir
 $shortcut.Save()
+
+if ($EnableStartup) {
+    $startupDir = [Environment]::GetFolderPath("Startup")
+    $startupShortcut = $shell.CreateShortcut((Join-Path $startupDir "WT Studio (background).lnk"))
+    $startupShortcut.TargetPath = Join-Path $InstallDir "wtstudio.exe"
+    $startupShortcut.Arguments = "start --no-browser"
+    $startupShortcut.WorkingDirectory = $InstallDir
+    $startupShortcut.Save()
+    Write-Host "Background server startup enabled. Open the web app when needed." -ForegroundColor DarkCyan
+} else {
+    Write-Host "Background startup is off. Enable later with -EnableStartup." -ForegroundColor DarkGray
+}
 
 Write-Host "WTStudio $releaseVersion installed successfully." -ForegroundColor Green
 Write-Host "Run 'wtstudio' again to start the tool." -ForegroundColor Cyan

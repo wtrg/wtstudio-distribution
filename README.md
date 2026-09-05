@@ -14,6 +14,15 @@ irm "https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.p
 powershell -Command "irm 'https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1' | iex"
 ```
 
+Nếu muốn server local tự khởi động nền cùng Windows (không tự mở trình duyệt),
+chạy lệnh sau:
+
+```powershell
+$installer = Join-Path $env:TEMP "wtstudio-install.ps1"
+irm "https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1" -OutFile $installer
+powershell.exe -ExecutionPolicy Bypass -File $installer -EnableStartup
+```
+
 ---
 
 ## Sau khi cài đặt:
@@ -24,6 +33,10 @@ wtstudio
 ```
 
 **Trình duyệt tự động mở!** 🎉
+
+Khi bật `-EnableStartup`, WTStudio chỉ khởi động server nền; người dùng mở web
+khi cần. Có thể tắt bằng cách xóa shortcut `WT Studio (background).lnk` trong
+thư mục Startup của Windows.
 
 ---
 
@@ -49,6 +62,17 @@ wtstudio
 
 - GitHub Releases: https://github.com/wtrg/wtstudio-distribution/releases
 - Email: support@example.com
+
+## Gỡ cài đặt:
+
+Đóng WTStudio, xóa shortcut trên Desktop và shortcut trong thư mục Startup (nếu
+đã bật), sau đó xóa thư mục cài đặt mặc định:
+
+```powershell
+Remove-Item -LiteralPath "$env:LOCALAPPDATA\WTStudio" -Recurse -Force
+```
+
+Nếu muốn dọn PATH, xóa riêng đường dẫn `WTStudio` khỏi biến môi trường User.
 
 ---
 
