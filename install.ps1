@@ -152,6 +152,7 @@ if ($EnableStartup) {
     $startupShortcut.TargetPath = Join-Path $InstallDir "wtstudio.exe"
     $startupShortcut.Arguments = "start --no-browser"
     $startupShortcut.WorkingDirectory = $InstallDir
+    $startupShortcut.WindowStyle = 7
     $startupShortcut.Save()
     Write-Host "Background server startup enabled. Open the web app when needed." -ForegroundColor DarkCyan
 } else {
