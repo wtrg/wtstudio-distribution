@@ -9,8 +9,7 @@ param(
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 $releaseApi = "https://api.github.com/repos/wtrg/wtstudio-distribution/releases/latest"
-$tempZip = Join-Path $env:TEMP "WTStudio-latest.zip"
-$backupDir = Join-Path $env:TEMP "WTStudio-install-backup-$([guid]::NewGuid().ToString('N'))"
+$tempZip = Join-Path $env:TEMP "WTStudio-edge-processor-latest.zip"
 
 function Get-Sha256Hex {
     param([string]$Path)
@@ -34,13 +33,13 @@ $release = Invoke-RestMethod -Uri $releaseApi -Headers @{
 }
 $releaseVersion = $release.tag_name.TrimStart('v')
 $releaseAsset = $release.assets |
-    Where-Object { $_.name -like "WTStudio-$releaseVersion*.zip" -and $_.name -notlike '*Delta*' } |
+    Where-Object { $_.name -like "WTStudio-$releaseVersion-EdgeProcessor*.zip" -and $_.name -notlike '*Delta*' } |
     Select-Object -First 1
 if (-not $releaseAsset) {
     $releaseAsset = $release.assets | Where-Object { $_.name -like '*.zip' -and $_.name -notlike '*Delta*' } | Select-Object -First 1
 }
 if (-not $releaseAsset) {
-    throw "No full ZIP asset found in the latest distribution release."
+    throw "No Edge-TTS processor ZIP found in the latest distribution release."
 }
 
 Write-Host "[2/5] Downloading WTStudio $releaseVersion..." -ForegroundColor Yellow
@@ -57,43 +56,19 @@ if ($releaseAsset.digest -and $releaseAsset.digest.StartsWith("sha256:")) {
     }
 }
 
-Write-Host "[3/5] Preserving user data and installing..." -ForegroundColor Yellow
-$preservePaths = @("logs", "tmp", "models", "runtime", "videotrans\cfg.json", "videotrans\params.json")
-$runningProcesses = @(Get-Process -Name "wtstudio" -ErrorAction SilentlyContinue)
+Write-Host "[3/5] Preserving the existing installation and installing the Edge-TTS processor..." -ForegroundColor Yellow
+$runningProcesses = @(Get-Process -Name "wtstudio", "vietdub-processor" -ErrorAction SilentlyContinue)
 if ($runningProcesses.Count -gt 0) {
     Write-Host "Stopping running WTStudio processes..." -ForegroundColor Yellow
     $runningProcesses | Stop-Process -Force -ErrorAction SilentlyContinue
     Start-Sleep -Seconds 2
-}
-New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
-foreach ($relativePath in $preservePaths) {
-    $sourcePath = Join-Path $InstallDir $relativePath
-    if (Test-Path -LiteralPath $sourcePath) {
-        $backupPath = Join-Path $backupDir $relativePath
-        New-Item -ItemType Directory -Path (Split-Path $backupPath -Parent) -Force | Out-Null
-        Copy-Item -LiteralPath $sourcePath -Destination $backupPath -Recurse -Force
-    }
-}
-if (Test-Path -LiteralPath $InstallDir) {
-    $removed = $false
-    for ($attempt = 1; $attempt -le 10; $attempt++) {
-        try {
-            Remove-Item -LiteralPath $InstallDir -Recurse -Force -ErrorAction Stop
-            $removed = $true
-            break
-        } catch {
-            if ($attempt -eq 10) { throw }
-            Start-Sleep -Seconds 1
-        }
-    }
-    if (-not $removed) { throw "Could not replace the existing WTStudio installation." }
 }
 New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
 $tempExtract = Join-Path $env:TEMP "WTStudio-extract-$([guid]::NewGuid().ToString('N'))"
 New-Item -ItemType Directory -Path $tempExtract -Force | Out-Null
 Expand-Archive -LiteralPath $tempZip -DestinationPath $tempExtract -Force
 $packageRoot = Join-Path $tempExtract "WTStudio"
-if (-not (Test-Path -LiteralPath (Join-Path $packageRoot "wtstudio.exe"))) {
+if (-not (Test-Path -LiteralPath (Join-Path $packageRoot "vietdub-processor\vietdub-processor.exe"))) {
     $packageRoot = $tempExtract
 }
 foreach ($item in Get-ChildItem -LiteralPath $packageRoot -Force) {
@@ -102,25 +77,19 @@ foreach ($item in Get-ChildItem -LiteralPath $packageRoot -Force) {
 }
 Remove-Item -LiteralPath $tempExtract -Recurse -Force
 Remove-Item -LiteralPath $tempZip -Force -ErrorAction SilentlyContinue
-
-foreach ($relativePath in $preservePaths) {
-    $backupPath = Join-Path $backupDir $relativePath
-    if (Test-Path -LiteralPath $backupPath) {
-        $targetPath = Join-Path $InstallDir $relativePath
-        New-Item -ItemType Directory -Path (Split-Path $targetPath -Parent) -Force | Out-Null
-        Copy-Item -LiteralPath $backupPath -Destination $targetPath -Recurse -Force
-    }
-}
-Remove-Item -LiteralPath $backupDir -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Path (Join-Path $InstallDir "runtime") -Force | Out-Null
 Set-Content -LiteralPath (Join-Path $InstallDir "runtime\installed_release_version.txt") -Value $releaseVersion -Encoding UTF8
+$processorExe = Join-Path $InstallDir "vietdub-processor\vietdub-processor.exe"
+if (-not (Test-Path -LiteralPath $processorExe)) {
+    throw "The Edge-TTS processor was not found after installation."
+}
 
 Write-Host "[4/5] Creating launcher..." -ForegroundColor Yellow
 $cmdContent = @"
 @echo off
-"%~dp0wtstudio.exe" %*
+"%~dp0vietdub-processor\vietdub-processor.exe" %*
 "@
-$cmdContent | Out-File (Join-Path $InstallDir "wtstudio.cmd") -Encoding ASCII -Force
+$cmdContent | Out-File (Join-Path $InstallDir "vietdub-processor.cmd") -Encoding ASCII -Force
 
 Write-Host "[5/5] Updating PATH and shortcut..." -ForegroundColor Yellow
 $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
@@ -142,15 +111,17 @@ if (-not $pathAlreadyLoaded) {
 $desktop = [Environment]::GetFolderPath("Desktop")
 $shell = New-Object -ComObject WScript.Shell
 $shortcut = $shell.CreateShortcut((Join-Path $desktop "WT Studio.lnk"))
-$shortcut.TargetPath = Join-Path $InstallDir "wtstudio.exe"
+$desktopTarget = Join-Path $InstallDir "wtstudio.exe"
+if (-not (Test-Path -LiteralPath $desktopTarget)) { $desktopTarget = $processorExe }
+$shortcut.TargetPath = $desktopTarget
 $shortcut.WorkingDirectory = $InstallDir
 $shortcut.Save()
 
 if ($EnableStartup) {
     $startupDir = [Environment]::GetFolderPath("Startup")
     $startupShortcut = $shell.CreateShortcut((Join-Path $startupDir "WT Studio (background).lnk"))
-    $startupShortcut.TargetPath = Join-Path $InstallDir "wtstudio.exe"
-    $startupShortcut.Arguments = "start --no-browser"
+    $startupShortcut.TargetPath = $processorExe
+    $startupShortcut.Arguments = "_serve --host 127.0.0.1 --port 8765 --no-browser"
     $startupShortcut.WorkingDirectory = $InstallDir
     $startupShortcut.WindowStyle = 7
     $startupShortcut.Save()
@@ -159,5 +130,5 @@ if ($EnableStartup) {
     Write-Host "Background startup is off. Enable later with -EnableStartup." -ForegroundColor DarkGray
 }
 
-Write-Host "WTStudio $releaseVersion installed successfully." -ForegroundColor Green
-Write-Host "Run 'wtstudio' again to start the tool." -ForegroundColor Cyan
+Write-Host "WTStudio Edge-TTS processor $releaseVersion installed successfully." -ForegroundColor Green
+Write-Host "Run 'vietdub-processor' or open the web app to start the local processor." -ForegroundColor Cyan

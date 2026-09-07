@@ -1,6 +1,6 @@
 # WT Studio - Video Vietnamese Localization Tool
 
-**Current release: v2.0.7**
+**Current release: v2.0.12**
 
 ## Cài đặt nhanh (1 lệnh duy nhất)
 
@@ -29,10 +29,10 @@ powershell.exe -ExecutionPolicy Bypass -File $installer -EnableStartup
 
 **Mở PowerShell/CMD mới và gõ:**
 ```powershell
-wtstudio
+vietdub-processor
 ```
 
-**Trình duyệt tự động mở!** 🎉
+Website ViệtDub sẽ kết nối tới bộ xử lý local trên `127.0.0.1:8765`.
 
 Khi bật `-EnableStartup`, WTStudio chỉ khởi động server nền; người dùng mở web
 khi cần. Có thể tắt bằng cách xóa shortcut `WT Studio (background).lnk` trong
@@ -53,8 +53,9 @@ thư mục Startup của Windows.
 
 - Windows 10/11 64-bit
 - 4GB RAM (khuyến nghị 8GB)
-- Kết nối Internet (lần đầu cần tải models ~2GB)
-- NVIDIA GPU khuyến nghị (không bắt buộc)
+- Kết nối Internet để Edge-TTS tạo giọng trực tuyến
+- FFmpeg được đóng gói trong processor
+- NVIDIA GPU không bắt buộc cho Edge-TTS
 
 ---
 
@@ -78,5 +79,5 @@ Nếu muốn dọn PATH, xóa riêng đường dẫn `WTStudio` khỏi biến m�
 
 ## Lưu ý:
 
-- Lần chạy đầu tiên sẽ tự động tải models (~2GB)
-- Cần license key để sử dụng (liên hệ admin)
+- Edge-TTS không cần tải model TTS nặng.
+- Processor mới được cài bổ sung vào thư mục WTStudio hiện có và không xóa project/user data.
