@@ -36,9 +36,6 @@ $releaseAsset = $release.assets |
     Where-Object { $_.name -like "WTStudio-$releaseVersion-EdgeProcessor*.zip" -and $_.name -notlike '*Delta*' } |
     Select-Object -First 1
 if (-not $releaseAsset) {
-    $releaseAsset = $release.assets | Where-Object { $_.name -like '*.zip' -and $_.name -notlike '*Delta*' } | Select-Object -First 1
-}
-if (-not $releaseAsset) {
     throw "No Edge-TTS processor ZIP found in the latest distribution release."
 }
 
