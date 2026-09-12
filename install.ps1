@@ -92,6 +92,12 @@ $processorExe = Join-Path $InstallDir "vietdub-processor\vietdub-processor.exe"
 if (-not (Test-Path -LiteralPath $processorExe)) {
     throw "The Edge-TTS processor was not found after installation."
 }
+$ffmpegDir = Join-Path $InstallDir "ffmpeg"
+foreach ($binaryName in @('ffmpeg.exe', 'ffprobe.exe')) {
+    if (-not (Test-Path -LiteralPath (Join-Path $ffmpegDir $binaryName) -PathType Leaf)) {
+        throw "The WTStudio package is incomplete: $binaryName is missing from the bundled ffmpeg folder."
+    }
+}
 Register-ProcessorProtocol -ProcessorPath $processorExe
 
 Write-Host "[4/5] Creating launcher..." -ForegroundColor Yellow
