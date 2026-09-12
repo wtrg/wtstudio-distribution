@@ -1,6 +1,6 @@
 # WT Studio - Video Vietnamese Localization Tool
 
-**Current release: v2.0.55**
+**Current release: v2.0.56**
 
 ## Cài đặt nhanh (1 lệnh duy nhất)
 
@@ -56,6 +56,7 @@ thư mục Startup của Windows.
 - 4GB RAM (khuyến nghị 8GB)
 - Kết nối Internet để Edge-TTS tạo giọng trực tuyến
 - FFmpeg được đóng gói trong processor
+- Installer kiểm tra đủ `ffmpeg.exe` và `ffprobe.exe` trước khi hoàn tất
 - NVIDIA GPU không bắt buộc cho Edge-TTS
 
 ---
