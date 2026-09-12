@@ -1,17 +1,18 @@
 # WT Studio - Video Vietnamese Localization Tool
 
-**Current release: v2.0.40**
+**Current release: v2.0.55**
 
 ## Cài đặt nhanh (1 lệnh duy nhất)
 
 ### PowerShell:
 ```powershell
-irm "https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1" | iex
+$installer = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1"
+& ([scriptblock]::Create([string]$installer)) -EnableStartup
 ```
 
 ### CMD:
 ```cmd
-powershell -Command "irm 'https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1' | iex"
+powershell -NoProfile -Command "$installer = Invoke-RestMethod -Uri 'https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1'; & ([scriptblock]::Create([string]$installer)) -EnableStartup"
 ```
 
 Nếu muốn server local tự khởi động nền cùng Windows (không tự mở trình duyệt),
@@ -19,7 +20,7 @@ chạy lệnh sau:
 
 ```powershell
 $installer = Join-Path $env:TEMP "wtstudio-install.ps1"
-irm "https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1" -OutFile $installer
+Invoke-RestMethod -Uri "https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1" -OutFile $installer
 powershell.exe -ExecutionPolicy Bypass -File $installer -EnableStartup
 ```
 

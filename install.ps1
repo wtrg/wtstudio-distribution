@@ -9,7 +9,19 @@ param(
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 $releaseApi = "https://api.github.com/repos/wtrg/wtstudio-distribution/releases/latest"
-$tempZip = Join-Path $env:TEMP "WTStudio-edge-processor-latest.zip"
+$tempZip = Join-Path $env:TEMP "WTStudio-edge-processor-$([guid]::NewGuid().ToString('N')).zip"
+
+function Register-ProcessorProtocol {
+    param([string]$ProcessorPath)
+
+    $protocolKey = 'HKCU:\Software\Classes\wtstudio'
+    $commandKey = Join-Path $protocolKey 'shell\open\command'
+    New-Item -Path $commandKey -Force -ErrorAction Stop | Out-Null
+    New-ItemProperty -Path $protocolKey -Name '(Default)' -Value 'URL:WTStudio Processor' -PropertyType String -Force -ErrorAction Stop | Out-Null
+    New-ItemProperty -Path $protocolKey -Name 'URL Protocol' -Value '' -PropertyType String -Force -ErrorAction Stop | Out-Null
+    $command = '"{0}" _serve --host 127.0.0.1 --port 8765 --no-browser' -f $ProcessorPath
+    New-ItemProperty -Path $commandKey -Name '(Default)' -Value $command -PropertyType String -Force -ErrorAction Stop | Out-Null
+}
 
 function Get-Sha256Hex {
     param([string]$Path)
@@ -80,6 +92,7 @@ $processorExe = Join-Path $InstallDir "vietdub-processor\vietdub-processor.exe"
 if (-not (Test-Path -LiteralPath $processorExe)) {
     throw "The Edge-TTS processor was not found after installation."
 }
+Register-ProcessorProtocol -ProcessorPath $processorExe
 
 Write-Host "[4/5] Creating launcher..." -ForegroundColor Yellow
 $cmdContent = @"
@@ -128,4 +141,5 @@ if ($EnableStartup) {
 }
 
 Write-Host "WTStudio Edge-TTS processor $releaseVersion installed successfully." -ForegroundColor Green
+Write-Host "Processor URI registered for the current Windows user." -ForegroundColor DarkCyan
 Write-Host "Run 'vietdub-processor' or open the web app to start the local processor." -ForegroundColor Cyan
