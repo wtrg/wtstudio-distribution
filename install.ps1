@@ -158,6 +158,27 @@ if ($EnableStartup) {
     Write-Host "Background startup is off. Enable later with -EnableStartup." -ForegroundColor DarkGray
 }
 
-Write-Host "WTStudio Edge-TTS processor $releaseVersion installed successfully." -ForegroundColor Green
+Write-Host "Starting processor and verifying the local connection..." -ForegroundColor Yellow
+$processorLog = Join-Path $InstallDir 'runtime\processor-start.stdout.log'
+$processorErrorLog = Join-Path $InstallDir 'runtime\processor-start.stderr.log'
+Start-Process -WindowStyle Hidden -FilePath $processorExe `
+    -ArgumentList @('_serve', '--host', '127.0.0.1', '--port', '8765', '--no-browser') `
+    -WorkingDirectory (Split-Path -Parent $processorExe) `
+    -RedirectStandardOutput $processorLog -RedirectStandardError $processorErrorLog -ErrorAction Stop | Out-Null
+$verifiedHealth = $null
+for ($attempt = 0; $attempt -lt 30; $attempt++) {
+    try {
+        $candidate = Invoke-RestMethod -Uri 'http://127.0.0.1:8765/api/health' -TimeoutSec 2 -Headers @{ Origin = 'https://wtstudio-ai.pages.dev' }
+        if ($candidate.version -eq $releaseVersion -and $candidate.capabilities.ffmpeg -and $candidate.capabilities.ffprobe -and $candidate.capabilities.edge_tts) {
+            $verifiedHealth = $candidate
+            break
+        }
+    } catch { }
+    Start-Sleep -Milliseconds 500
+}
+if (-not $verifiedHealth) {
+    throw "Files installed, but processor startup verification failed. Check $processorErrorLog. Do not reinstall repeatedly; send this log to support."
+}
+Write-Host "WTStudio Edge-TTS processor $releaseVersion installed, running and verified on port 8765." -ForegroundColor Green
 Write-Host "Processor URI registered for the current Windows user." -ForegroundColor DarkCyan
-Write-Host "Run 'vietdub-processor' or open the web app to start the local processor." -ForegroundColor Cyan
+Write-Host "Return to the web app. Its connection notice should disappear automatically." -ForegroundColor Cyan
