@@ -80,9 +80,20 @@ $packageRoot = Join-Path $tempExtract "WTStudio"
 if (-not (Test-Path -LiteralPath (Join-Path $packageRoot "vietdub-processor\vietdub-processor.exe"))) {
     $packageRoot = $tempExtract
 }
-foreach ($item in Get-ChildItem -LiteralPath $packageRoot -Force) {
-    $dest = Join-Path $InstallDir $item.Name
-    Copy-Item -LiteralPath $item.FullName -Destination $dest -Recurse -Force
+foreach ($item in Get-ChildItem -LiteralPath $packageRoot -Recurse -File -Force) {
+    $relative = $item.FullName.Substring($packageRoot.TrimEnd('\').Length + 1)
+    $dest = Join-Path $InstallDir $relative
+    New-Item -ItemType Directory -Path (Split-Path -Parent $dest) -Force | Out-Null
+    Copy-Item -LiteralPath $item.FullName -Destination $dest -Force
+}
+foreach ($required in @('vietdub-processor\vietdub-processor.exe', 'ffmpeg\ffmpeg.exe', 'ffmpeg\ffprobe.exe')) {
+    $sourceFile = Join-Path $packageRoot $required
+    $targetFile = Join-Path $InstallDir $required
+    if (-not (Test-Path -LiteralPath $sourceFile -PathType Leaf) -or
+        -not (Test-Path -LiteralPath $targetFile -PathType Leaf) -or
+        (Get-Sha256Hex $sourceFile) -ne (Get-Sha256Hex $targetFile)) {
+        throw "Installation verification failed: $required does not match the release."
+    }
 }
 Remove-Item -LiteralPath $tempExtract -Recurse -Force
 Remove-Item -LiteralPath $tempZip -Force -ErrorAction SilentlyContinue
@@ -129,7 +140,8 @@ $shell = New-Object -ComObject WScript.Shell
 $shortcut = $shell.CreateShortcut((Join-Path $desktop "WT Studio.lnk"))
 $desktopTarget = Join-Path $InstallDir "wtstudio.exe"
 if (-not (Test-Path -LiteralPath $desktopTarget)) { $desktopTarget = $processorExe }
-$shortcut.TargetPath = $desktopTarget
+$shortcut.TargetPath = $processorExe
+$shortcut.Arguments = "_serve --host 127.0.0.1 --port 8765 --no-browser"
 $shortcut.WorkingDirectory = $InstallDir
 $shortcut.Save()
 
