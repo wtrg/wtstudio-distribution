@@ -30,10 +30,17 @@ powershell.exe -ExecutionPolicy Bypass -File $installer -EnableStartup
 
 **Mở PowerShell/CMD mới và gõ:**
 ```powershell
-vietdub-processor
+wt
 ```
 
-Website ViệtDub sẽ kết nối tới bộ xử lý local trên `127.0.0.1:8765`.
+Lệnh `wt` tự kiểm tra processor, khởi động nền nếu cần rồi mở website ViệtDub.
+Website sẽ kết nối tới bộ xử lý local trên `127.0.0.1:8765`.
+
+Lệnh kỹ thuật để gọi trực tiếp processor vẫn được giữ:
+
+```powershell
+vietdub-processor
+```
 
 Khi bật `-EnableStartup`, WTStudio chỉ khởi động server nền; người dùng mở web
 khi cần. Có thể tắt bằng cách xóa shortcut `WT Studio (background).lnk` trong

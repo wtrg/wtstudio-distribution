@@ -118,17 +118,28 @@ $cmdContent = @"
 "@
 $cmdContent | Out-File (Join-Path $InstallDir "vietdub-processor.cmd") -Encoding ASCII -Force
 
+$quickLauncherContent = @"
+@echo off
+setlocal
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "`$healthy=`$false; try { `$null=Invoke-RestMethod -Uri 'http://127.0.0.1:8765/api/health' -TimeoutSec 2 -Headers @{ Origin='https://wtstudio-ai.pages.dev' }; `$healthy=`$true } catch {}; if (-not `$healthy) { Start-Process -WindowStyle Hidden -FilePath '%~dp0vietdub-processor\vietdub-processor.exe' -ArgumentList '_serve','--host','127.0.0.1','--port','8765','--no-browser' -WorkingDirectory '%~dp0vietdub-processor' }; Start-Process 'https://wtstudio-ai.pages.dev/'"
+endlocal
+"@
+$quickLauncherContent | Out-File (Join-Path $InstallDir "wt.cmd") -Encoding ASCII -Force
+
 Write-Host "[5/5] Updating PATH and shortcut..." -ForegroundColor Yellow
 $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
-if ($userPath -notlike "*$InstallDir*") {
-    [Environment]::SetEnvironmentVariable("Path", "$userPath;$InstallDir", "User")
-}
+$normalizedInstallDir = $InstallDir.TrimEnd('\')
+$userPathEntries = @($userPath -split ';' | Where-Object {
+    $_ -and $_.TrimEnd('\') -ine $normalizedInstallDir
+})
+# Keep WTStudio first because WindowsApps may already provide wt.exe.
+[Environment]::SetEnvironmentVariable("Path", ((@($InstallDir) + $userPathEntries) -join ';'), "User")
 # Keep the shell that executed `irm ... | iex` usable immediately.  Updating
 # the User-scoped environment variable only affects processes created later;
 # the current PowerShell process keeps its old PATH otherwise, so `wtstudio`
 # fails until the user opens another terminal.
 $currentPathEntries = @($env:Path -split ';' | Where-Object { $_ })
-$installPath = $InstallDir.TrimEnd('\')
+$installPath = $normalizedInstallDir
 $pathAlreadyLoaded = $currentPathEntries | Where-Object {
     $_.TrimEnd('\') -ieq $installPath
 }
@@ -180,5 +191,6 @@ if (-not $verifiedHealth) {
     throw "Files installed, but processor startup verification failed. Check $processorErrorLog. Do not reinstall repeatedly; send this log to support."
 }
 Write-Host "WTStudio Edge-TTS processor $releaseVersion installed, running and verified on port 8765." -ForegroundColor Green
+Write-Host "Quick launch command installed: wt" -ForegroundColor Green
 Write-Host "Processor URI registered for the current Windows user." -ForegroundColor DarkCyan
-Write-Host "Return to the web app. Its connection notice should disappear automatically." -ForegroundColor Cyan
+Write-Host "Next time, open PowerShell or CMD and run: wt" -ForegroundColor Cyan
