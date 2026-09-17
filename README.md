@@ -39,7 +39,8 @@ Website sẽ kết nối tới bộ xử lý local trên `127.0.0.1:8765`.
 ### Thử bản local 2.0.64
 
 Tag thử nghiệm không thay đổi bản `latest` cho người dùng hiện tại. Lệnh dưới đây
-cài đúng tag và `wt` sẽ mở `http://127.0.0.1:8765/`:
+cài đúng tag vào `%LOCALAPPDATA%\WTStudio-Preview` (không ghi đè thư mục
+WTStudio hiện có) và `wt` sẽ mở `http://127.0.0.1:8765/`:
 
 ```powershell
 & ([scriptblock]::Create((irm https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1))) -ReleaseTag v2.0.64-rc1

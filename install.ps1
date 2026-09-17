@@ -7,6 +7,11 @@ param(
     [switch]$EnableStartup
 )
 
+$ReleaseTag = $ReleaseTag.Trim()
+if ($ReleaseTag -and -not $PSBoundParameters.ContainsKey('InstallDir')) {
+    $InstallDir = Join-Path $env:LOCALAPPDATA 'WTStudio-Preview'
+}
+
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 $releaseApi = if ($ReleaseTag) {
