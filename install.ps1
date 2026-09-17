@@ -121,7 +121,7 @@ $cmdContent | Out-File (Join-Path $InstallDir "vietdub-processor.cmd") -Encoding
 $quickLauncherContent = @"
 @echo off
 setlocal
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "`$healthy=`$false; try { `$null=Invoke-RestMethod -Uri 'http://127.0.0.1:8765/api/health' -TimeoutSec 2 -Headers @{ Origin='https://wtstudio-ai.pages.dev' }; `$healthy=`$true } catch {}; if (-not `$healthy) { Start-Process -WindowStyle Hidden -FilePath '%~dp0vietdub-processor\vietdub-processor.exe' -ArgumentList '_serve','--host','127.0.0.1','--port','8765','--no-browser' -WorkingDirectory '%~dp0vietdub-processor' }; Start-Process 'https://wtstudio-ai.pages.dev/'"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "`$healthy=`$false; try { `$null=Invoke-RestMethod -Uri 'http://127.0.0.1:8765/api/health' -TimeoutSec 2; `$healthy=`$true } catch {}; if (-not `$healthy) { Start-Process -WindowStyle Hidden -FilePath '%~dp0vietdub-processor\vietdub-processor.exe' -ArgumentList '_serve','--host','127.0.0.1','--port','8765','--no-browser' -WorkingDirectory '%~dp0vietdub-processor' }; for (`$i=0; `$i -lt 20; `$i++) { try { `$null=Invoke-RestMethod -Uri 'http://127.0.0.1:8765/api/health' -TimeoutSec 1; break } catch { Start-Sleep -Milliseconds 500 } }; Start-Process 'http://127.0.0.1:8765/'"
 endlocal
 "@
 $quickLauncherContent | Out-File (Join-Path $InstallDir "wt.cmd") -Encoding ASCII -Force
