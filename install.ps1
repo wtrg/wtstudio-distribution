@@ -3,12 +3,17 @@
 
 param(
     [string]$InstallDir = "$env:LOCALAPPDATA\WTStudio",
+    [string]$ReleaseTag = "",
     [switch]$EnableStartup
 )
 
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
-$releaseApi = "https://api.github.com/repos/wtrg/wtstudio-distribution/releases/latest"
+$releaseApi = if ($ReleaseTag) {
+    "https://api.github.com/repos/wtrg/wtstudio-distribution/releases/tags/$([uri]::EscapeDataString($ReleaseTag))"
+} else {
+    "https://api.github.com/repos/wtrg/wtstudio-distribution/releases/latest"
+}
 $tempZip = Join-Path $env:TEMP "WTStudio-edge-processor-$([guid]::NewGuid().ToString('N')).zip"
 
 function Register-ProcessorProtocol {
@@ -43,7 +48,8 @@ $release = Invoke-RestMethod -Uri $releaseApi -Headers @{
     "User-Agent" = "WTStudio-Installer"
     "Accept" = "application/vnd.github+json"
 }
-$releaseVersion = $release.tag_name.TrimStart('v')
+$releaseVersion = ($release.tag_name.TrimStart('v') -split '-')[0]
+$useLocalUi = [version]$releaseVersion -ge [version]'2.0.64'
 $releaseAsset = $release.assets |
     Where-Object { $_.name -like "WTStudio-$releaseVersion-EdgeProcessor*.zip" -and $_.name -notlike '*Delta*' } |
     Select-Object -First 1
@@ -118,13 +124,39 @@ $cmdContent = @"
 "@
 $cmdContent | Out-File (Join-Path $InstallDir "vietdub-processor.cmd") -Encoding ASCII -Force
 
-$quickLauncherContent = @"
+$quickLauncherContent = if ($useLocalUi) { @"
+@echo off
+setlocal
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0wt-launch.ps1"
+endlocal
+"@ } else { @"
 @echo off
 setlocal
 powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "`$healthy=`$false; try { `$null=Invoke-RestMethod -Uri 'http://127.0.0.1:8765/api/health' -TimeoutSec 2 -Headers @{ Origin='https://wtstudio-ai.pages.dev' }; `$healthy=`$true } catch {}; if (-not `$healthy) { Start-Process -WindowStyle Hidden -FilePath '%~dp0vietdub-processor\vietdub-processor.exe' -ArgumentList '_serve','--host','127.0.0.1','--port','8765','--no-browser' -WorkingDirectory '%~dp0vietdub-processor' }; Start-Process 'https://wtstudio-ai.pages.dev/'"
 endlocal
-"@
+"@ }
 $quickLauncherContent | Out-File (Join-Path $InstallDir "wt.cmd") -Encoding ASCII -Force
+if ($useLocalUi) {
+    $localLauncher = @'
+$ErrorActionPreference = 'Stop'
+$installDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$processor = Join-Path $installDir 'vietdub-processor\vietdub-processor.exe'
+$healthy = $false
+for ($attempt = 0; $attempt -lt 20; $attempt++) {
+    try {
+        $health = Invoke-RestMethod -Uri 'http://127.0.0.1:8765/api/health' -TimeoutSec 2
+        if ($health.version -eq '__RELEASE_VERSION__') { $healthy = $true; break }
+    } catch { }
+    if ($attempt -eq 0) {
+        Start-Process -WindowStyle Hidden -FilePath $processor -ArgumentList @('_serve','--host','127.0.0.1','--port','8765','--no-browser') -WorkingDirectory (Split-Path -Parent $processor)
+    }
+    Start-Sleep -Milliseconds 500
+}
+if (-not $healthy) { throw 'VietDub local khong khoi dong duoc. Kiem tra cong 8765.' }
+Start-Process 'http://127.0.0.1:8765/'
+'@
+    $localLauncher.Replace('__RELEASE_VERSION__', $releaseVersion) | Set-Content -LiteralPath (Join-Path $InstallDir 'wt-launch.ps1') -Encoding UTF8
+}
 
 Write-Host "[5/5] Updating PATH and shortcut..." -ForegroundColor Yellow
 $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
@@ -151,8 +183,8 @@ $shell = New-Object -ComObject WScript.Shell
 $shortcut = $shell.CreateShortcut((Join-Path $desktop "WT Studio.lnk"))
 $desktopTarget = Join-Path $InstallDir "wtstudio.exe"
 if (-not (Test-Path -LiteralPath $desktopTarget)) { $desktopTarget = $processorExe }
-$shortcut.TargetPath = $processorExe
-$shortcut.Arguments = "_serve --host 127.0.0.1 --port 8765 --no-browser"
+$shortcut.TargetPath = if ($useLocalUi) { Join-Path $InstallDir 'wt.cmd' } else { $processorExe }
+$shortcut.Arguments = if ($useLocalUi) { '' } else { '_serve --host 127.0.0.1 --port 8765 --no-browser' }
 $shortcut.WorkingDirectory = $InstallDir
 $shortcut.Save()
 
@@ -192,5 +224,6 @@ if (-not $verifiedHealth) {
 }
 Write-Host "WTStudio Edge-TTS processor $releaseVersion installed, running and verified on port 8765." -ForegroundColor Green
 Write-Host "Quick launch command installed: wt" -ForegroundColor Green
+if ($useLocalUi) { Write-Host "wt opens VietDub at http://127.0.0.1:8765/" -ForegroundColor Green }
 Write-Host "Processor URI registered for the current Windows user." -ForegroundColor DarkCyan
 Write-Host "Next time, open PowerShell or CMD and run: wt" -ForegroundColor Cyan

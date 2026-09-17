@@ -33,8 +33,20 @@ powershell.exe -ExecutionPolicy Bypass -File $installer -EnableStartup
 wt
 ```
 
-Lệnh `wt` tự kiểm tra processor, khởi động nền nếu cần rồi mở website ViệtDub.
+Với bản public hiện tại, `wt` tự kiểm tra processor, khởi động nền rồi mở website ViệtDub.
 Website sẽ kết nối tới bộ xử lý local trên `127.0.0.1:8765`.
+
+### Thử bản local 2.0.64
+
+Tag thử nghiệm không thay đổi bản `latest` cho người dùng hiện tại. Lệnh dưới đây
+cài đúng tag và `wt` sẽ mở `http://127.0.0.1:8765/`:
+
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1))) -ReleaseTag v2.0.64-rc1
+```
+
+Bản local yêu cầu key ViệtDub. Hiện gói thanh toán Telegram 249k chưa tự phát
+key local; chỉ dùng tag thử nghiệm với key được tạo trong trang quản trị.
 
 Lệnh kỹ thuật để gọi trực tiếp processor vẫn được giữ:
 
