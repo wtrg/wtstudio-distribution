@@ -1,1 +1,1 @@
-ab96372b6f27e0912a2cb85f2c2ee8dd55cf238c2ba5d1e04c7054a798cd4432  WTStudio-2.0.68-EdgeProcessor.zip
+b03777052d6f1f522993f3bb2670a4aaa69b901f12c506b02fb9eac5263ebb2e  WTStudio-2.0.68-EdgeProcessor.zip
