@@ -143,22 +143,102 @@ endlocal
 $quickLauncherContent | Out-File (Join-Path $InstallDir "wt.cmd") -Encoding ASCII -Force
 if ($useLocalUi) {
     $localLauncher = @'
+param([string]$Command, [string]$Arg1)
+
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $ErrorActionPreference = 'Stop'
 $installDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $processor = Join-Path $installDir 'vietdub-processor\vietdub-processor.exe'
+
+# 1. Xu ly lenh wt update / wt --update
+if ($Command -in @('update', '--update', '-u')) {
+    Write-Host "======================================================================" -ForegroundColor Cyan
+    Write-Host "          WT STUDIO - DANG TIEN HANH CAP NHAT HE THONG                " -ForegroundColor Yellow
+    Write-Host "======================================================================" -ForegroundColor Cyan
+    powershell -ExecutionPolicy Bypass -Command "$installer = Invoke-RestMethod -Uri 'https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1'; & ([scriptblock]::Create([string]$installer))"
+    exit 0
+}
+
+# 2. Xu ly lenh wt check-update / wt --check-update
+if ($Command -in @('check-update', '--check-update', 'check')) {
+    if (Test-Path $processor) {
+        & $processor --check-update
+    } else {
+        $online = (Invoke-RestMethod -Uri "https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/version.json").version
+        Write-Host "Phien ban online moi nhat: v$online"
+    }
+    exit 0
+}
+
+# 3. Xu ly lenh wt key
+if ($Command -in @('key', '--key')) {
+    if ($Arg1 -and (Test-Path $processor)) {
+        & $processor --key $Arg1 --check-key
+    } elseif (Test-Path $processor) {
+        & $processor --check-key
+    }
+    exit 0
+}
+
+# Xac dinh phien ban hien tai
+$current = "__RELEASE_VERSION__"
+if (Test-Path (Join-Path $installDir "version.json")) {
+    try { $current = (Get-Content (Join-Path $installDir "version.json") | ConvertFrom-Json).version } catch {}
+}
+
+Write-Host "======================================================================" -ForegroundColor Cyan
+Write-Host "   WT STUDIO - VIETDUB VIDEO AI (HE THONG LONG TIENG & RENDER)        " -ForegroundColor Yellow
+Write-Host "   Phien ban may cua ban: v$current  |  Platform: Windows x64         " -ForegroundColor White
+Write-Host "======================================================================" -ForegroundColor Cyan
+Write-Host " [UPDATE] Dang kiem tra ban cap nhat tu GitHub..." -ForegroundColor Gray
+
+# 4. Kiem tra cap nhat tu GitHub Distribution
+try {
+    $verData = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/version.json" -TimeoutSec 4 -Headers @{ "User-Agent" = "WTStudio" }
+    $latest = $verData.version
+    if ($latest -and [version]$latest -gt [version]$current) {
+        Write-Host "----------------------------------------------------------------------" -ForegroundColor Yellow
+        Write-Host " [UPDATE] >>> DA CO BAN CAP NHAT MOI: v$latest (Hien tai: v$current) <<<" -ForegroundColor Red
+        Write-Host " Tinh nang noi bat:" -ForegroundColor White
+        foreach ($f in $verData.features) { Write-Host "   + $f" -ForegroundColor Yellow }
+        Write-Host "----------------------------------------------------------------------" -ForegroundColor Yellow
+        $ans = Read-Host " >> Ban co muon cap nhat ngay bay gio? (Y/N) [Y]"
+        if ($ans -eq "" -or $ans -match "^[Yy]") {
+            Write-Host " [UPDATE] Dang tai va cai dat ban moi v$latest..." -ForegroundColor Green
+            powershell -ExecutionPolicy Bypass -Command "$installer = Invoke-RestMethod -Uri 'https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1'; & ([scriptblock]::Create([string]$installer))"
+            exit 0
+        }
+    } else {
+        Write-Host " [UPDATE] [OK] Ban dang su dung phien ban moi nhat (v$current)." -ForegroundColor Green
+    }
+} catch {
+    Write-Host " [UPDATE] Khong the ket noi GitHub kiem tra update ($($_.Exception.Message))." -ForegroundColor DarkGray
+}
+Write-Host "----------------------------------------------------------------------" -ForegroundColor DarkGray
+
+# 5. Khoi dong Processor neu chua chay
+Write-Host " [PROCESSOR] Dang kiem tra bo xu ly local tren cong 8765..." -ForegroundColor Gray
 $healthy = $false
 for ($attempt = 0; $attempt -lt 20; $attempt++) {
     try {
         $health = Invoke-RestMethod -Uri 'http://127.0.0.1:8765/api/health' -TimeoutSec 2
-        if ($health.version -eq '__RELEASE_VERSION__') { $healthy = $true; break }
+        if ($health.status -eq 'ok') { $healthy = $true; break }
     } catch { }
-    if ($attempt -eq 0) {
+    if ($attempt -eq 0 -and (Test-Path $processor)) {
+        Write-Host " [PROCESSOR] Dang khoi dong vietdub-processor chay nen..." -ForegroundColor Gray
         Start-Process -WindowStyle Hidden -FilePath $processor -ArgumentList @('_serve','--host','127.0.0.1','--port','8765','--no-browser') -WorkingDirectory (Split-Path -Parent $processor)
     }
     Start-Sleep -Milliseconds 500
 }
-if (-not $healthy) { throw 'VietDub local khong khoi dong duoc. Kiem tra cong 8765.' }
-Start-Process 'http://127.0.0.1:8765/'
+if (-not $healthy) { 
+    Write-Host " [!] LOI: VietDub local khong khoi dong duoc. Kiem tra cong 8765." -ForegroundColor Red
+    throw 'VietDub local khong khoi dong duoc.'
+}
+
+Write-Host " [PROCESSOR] [OK] Bo xu ly local da san sang (Port 8765)!" -ForegroundColor Green
+Write-Host " [WEB] Dang mo giao dien WT Studio tren trinh duyet: https://wtstudio-ai.pages.dev/" -ForegroundColor Cyan
+Write-Host "======================================================================" -ForegroundColor Cyan
+Start-Process 'https://wtstudio-ai.pages.dev/'
 '@
     $localLauncher.Replace('__RELEASE_VERSION__', $releaseVersion) | Set-Content -LiteralPath (Join-Path $InstallDir 'wt-launch.ps1') -Encoding UTF8
 }
