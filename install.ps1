@@ -286,6 +286,18 @@ if ($EnableStartup) {
     Write-Host "Background startup is off. Enable later with -EnableStartup." -ForegroundColor DarkGray
 }
 
+Write-Host "Stopping any running processor..." -ForegroundColor Gray
+Get-Process -Name 'vietdub-processor' -ErrorAction SilentlyContinue | Stop-Process -Force
+try {
+    $existingConnections = Get-NetTCPConnection -LocalPort 8765 -ErrorAction SilentlyContinue
+    foreach ($conn in $existingConnections) {
+        if ($conn.OwningProcess -gt 0) {
+            Stop-Process -Id $conn.OwningProcess -Force -ErrorAction SilentlyContinue
+        }
+    }
+} catch { }
+Start-Sleep -Milliseconds 800
+
 Write-Host "Starting processor and verifying the local connection..." -ForegroundColor Yellow
 $processorLog = Join-Path $InstallDir 'runtime\processor-start.stdout.log'
 $processorErrorLog = Join-Path $InstallDir 'runtime\processor-start.stderr.log'
