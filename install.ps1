@@ -155,7 +155,7 @@ if ($Command -in @('update', '--update', '-u')) {
     Write-Host "======================================================================" -ForegroundColor Cyan
     Write-Host "          WT STUDIO - DANG TIEN HANH CAP NHAT HE THONG                " -ForegroundColor Yellow
     Write-Host "======================================================================" -ForegroundColor Cyan
-    powershell -ExecutionPolicy Bypass -Command "$installer = Invoke-RestMethod -Uri 'https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1'; & ([scriptblock]::Create([string]$installer))"
+    powershell -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1 | iex"
     exit 0
 }
 
@@ -205,7 +205,7 @@ try {
         $ans = Read-Host " >> Ban co muon cap nhat ngay bay gio? (Y/N) [Y]"
         if ($ans -eq "" -or $ans -match "^[Yy]") {
             Write-Host " [UPDATE] Dang tai va cai dat ban moi v$latest..." -ForegroundColor Green
-            powershell -ExecutionPolicy Bypass -Command "$installer = Invoke-RestMethod -Uri 'https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1'; & ([scriptblock]::Create([string]$installer))"
+            powershell -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1 | iex"
             exit 0
         }
     } else {
