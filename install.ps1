@@ -137,7 +137,7 @@ endlocal
 "@ } else { @"
 @echo off
 setlocal
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "`$healthy=`$false; try { `$null=Invoke-RestMethod -Uri 'http://127.0.0.1:8765/api/health' -TimeoutSec 2 -Headers @{ Origin='https://wtstudio-ai.pages.dev' }; `$healthy=`$true } catch {}; if (-not `$healthy) { Start-Process -WindowStyle Hidden -FilePath '%~dp0vietdub-processor\vietdub-processor.exe' -ArgumentList '_serve','--host','127.0.0.1','--port','8765','--no-browser' -WorkingDirectory '%~dp0vietdub-processor' }; Start-Process 'https://wtstudio-ai.pages.dev/'"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "`$healthy=`$false; try { `$null=Invoke-RestMethod -Uri 'http://127.0.0.1:8765/api/health' -TimeoutSec 2 }; `$healthy=`$true } catch {}; if (-not `$healthy) { Start-Process -WindowStyle Hidden -FilePath '%~dp0vietdub-processor\vietdub-processor.exe' -ArgumentList '_serve','--host','127.0.0.1','--port','8765','--no-browser' -WorkingDirectory '%~dp0vietdub-processor' }; Start-Process 'http://127.0.0.1:8765/'"
 endlocal
 "@ }
 $quickLauncherContent | Out-File (Join-Path $InstallDir "wt.cmd") -Encoding ASCII -Force
@@ -236,9 +236,9 @@ if (-not $healthy) {
 }
 
 Write-Host " [PROCESSOR] [OK] Bo xu ly local da san sang (Port 8765)!" -ForegroundColor Green
-Write-Host " [WEB] Dang mo giao dien WT Studio tren trinh duyet: https://wtstudio-ai.pages.dev/" -ForegroundColor Cyan
+Write-Host " [WEB] Dang mo giao dien WT Studio cuc bo: http://127.0.0.1:8765/" -ForegroundColor Cyan
 Write-Host "======================================================================" -ForegroundColor Cyan
-Start-Process 'https://wtstudio-ai.pages.dev/'
+Start-Process 'http://127.0.0.1:8765/'
 '@
     $localLauncher.Replace('__RELEASE_VERSION__', $releaseVersion) | Set-Content -LiteralPath (Join-Path $InstallDir 'wt-launch.ps1') -Encoding UTF8
 }
