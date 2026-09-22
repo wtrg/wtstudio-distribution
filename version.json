@@ -1,0 +1,17 @@
+{
+  "name": "WT Studio - ViệtDub Video AI",
+  "version": "2.0.69",
+  "release_date": "2026-09-22",
+  "min_supported_version": "2.0.0",
+  "download_url": "https://github.com/wtrg/wtstudio-source/releases/latest",
+  "install_command_ps": "irm https://raw.githubusercontent.com/wtrg/wtstudio-source/main/scripts/install.ps1 | iex",
+  "install_command_cmd": "powershell -ExecutionPolicy Bypass -Command \"irm https://raw.githubusercontent.com/wtrg/wtstudio-source/main/scripts/install.ps1 | iex\"",
+  "features": [
+    "Chuyển toàn bộ 83+ giọng lồng tiếng (Saydi Cloned, VieNeu, ElevenLabs) lên Cloud Neural TTS Serverless, 0% tốn RAM và xóa bỏ Saydi cổng 5000",
+    "Khắc phục triệt để lỗi phụ đề nửa màn hình bị vệt xanh neon và lộ chữ gốc bằng drawbox yuv420p",
+    "Sửa lỗi chọn giọng nữ Cuppy (Chị Google) chuẩn âm sắc trợ lý ảo nữ",
+    "Tối ưu tốc độ tải video Douyin/TikTok trực tiếp không logo trong 10-15s",
+    "Tăng tốc độ Render video lên tới 7.0x realtime (Intel QSV & NVIDIA NVENC)",
+    "Hỗ trợ lệnh 'wt' và 'wt update' trực tiếp từ bất kỳ cửa sổ CMD / Terminal"
+  ]
+}
