@@ -1,12 +1,13 @@
 {
   "name": "WT Studio - ViệtDub Video AI",
-  "version": "2.0.76",
+  "version": "2.0.77",
   "release_date": "2026-09-23",
   "min_supported_version": "2.0.0",
   "download_url": "https://github.com/wtrg/wtstudio-distribution/releases/latest",
   "install_command_ps": "irm https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1 | iex",
   "install_command_cmd": "powershell -ExecutionPolicy Bypass -Command \"irm https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1 | iex\"",
   "features": [
+    "Khắc phục triệt để lỗi [WinError 32] xung đột chiếm dụng tệp tạm thời (.part) trên Windows khi lồng tiếng bằng cơ chế safe replace/unlink và token riêng biệt",
     "Thử giọng nhân vật trực tiếp trên giao diện với hơn 83 giọng Neural AI (Thảo, Adam, Cuppy, Tào Tháo...) và Edge-TTS",
     "Phân bổ tải Round-Robin đa luồng lên đến 6 luồng (4 API Groq độc lập + 2 API Gemini phụ trợ)",
     "Tối ưu hóa model dịch thuật chi phí cực thấp, tiết kiệm token (llama-3.1-8b-instant & gemini-flash-lite-latest)",
