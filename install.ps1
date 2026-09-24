@@ -64,6 +64,7 @@ if (-not $releaseAsset) {
 
 Write-Host "[2/5] Downloading WTStudio $releaseVersion..." -ForegroundColor Yellow
 Invoke-WebRequest -Uri $releaseAsset.browser_download_url -OutFile $tempZip -UseBasicParsing
+Unblock-File -LiteralPath $tempZip -ErrorAction SilentlyContinue
 
 if ($releaseAsset.size -and (Get-Item -LiteralPath $tempZip).Length -ne [int64]$releaseAsset.size) {
     throw "Downloaded file size does not match the GitHub release asset."
@@ -108,6 +109,9 @@ foreach ($required in @('vietdub-processor\vietdub-processor.exe', 'ffmpeg\ffmpe
 }
 Remove-Item -LiteralPath $tempExtract -Recurse -Force
 Remove-Item -LiteralPath $tempZip -Force -ErrorAction SilentlyContinue
+Write-Host "Unblocking installed files and registering exclusion..." -ForegroundColor Gray
+Get-ChildItem -LiteralPath $InstallDir -Recurse -ErrorAction SilentlyContinue | Unblock-File -ErrorAction SilentlyContinue
+try { Add-MpPreference -ExclusionPath $InstallDir -ErrorAction SilentlyContinue } catch { }
 New-Item -ItemType Directory -Path (Join-Path $InstallDir "runtime") -Force | Out-Null
 Set-Content -LiteralPath (Join-Path $InstallDir "runtime\installed_release_version.txt") -Value $releaseVersion -Encoding UTF8
 $processorExe = Join-Path $InstallDir "vietdub-processor\vietdub-processor.exe"
@@ -226,7 +230,25 @@ for ($attempt = 0; $attempt -lt 20; $attempt++) {
     } catch { }
     if ($attempt -eq 0 -and (Test-Path $processor)) {
         Write-Host " [PROCESSOR] Dang khoi dong vietdub-processor chay nen..." -ForegroundColor Gray
-        Start-Process -WindowStyle Hidden -FilePath $processor -ArgumentList @('_serve','--host','127.0.0.1','--port','8765','--no-browser') -WorkingDirectory (Split-Path -Parent $processor)
+        Get-ChildItem -LiteralPath (Split-Path -Parent $processor) -Recurse -ErrorAction SilentlyContinue | Unblock-File -ErrorAction SilentlyContinue
+        try {
+            Start-Process -WindowStyle Hidden -FilePath $processor -ArgumentList @('_serve','--host','127.0.0.1','--port','8765','--no-browser') -WorkingDirectory (Split-Path -Parent $processor) -ErrorAction Stop
+        } catch {
+            if ($_.Exception.Message -match "Application Control" -or $_.Exception.Message -match "blocked") {
+                Write-Host ""
+                Write-Host "======================================================================" -ForegroundColor Red
+                Write-Host " [!] CHU Y: Windows 11 Smart App Control dang chan chay file moi tai!" -ForegroundColor Yellow
+                Write-Host "----------------------------------------------------------------------" -ForegroundColor DarkGray
+                Write-Host " De mo khoa, ban chi can 1 thao tac don gian:" -ForegroundColor White
+                Write-Host " 1. Mo Start Menu, tim kiem: 'Smart App Control'" -ForegroundColor Cyan
+                Write-Host " 2. Chuyen trang thai sang 'Off' (Tat)" -ForegroundColor Yellow
+                Write-Host " (Hoac vao Windows Security -> Virus & threat protection -> Exclusions" -ForegroundColor DarkGray
+                Write-Host "  -> Them thu muc: $(Split-Path -Parent $processor))" -ForegroundColor DarkGray
+                Write-Host " Sau khi tat, go: wt de khoi dong tool." -ForegroundColor Green
+                Write-Host "======================================================================" -ForegroundColor Red
+                break
+            }
+        }
     }
     Start-Sleep -Milliseconds 500
 }
@@ -301,14 +323,33 @@ Start-Sleep -Milliseconds 800
 Write-Host "Starting processor and verifying the local connection..." -ForegroundColor Yellow
 $processorLog = Join-Path $InstallDir 'runtime\processor-start.stdout.log'
 $processorErrorLog = Join-Path $InstallDir 'runtime\processor-start.stderr.log'
-Start-Process -WindowStyle Hidden -FilePath $processorExe `
-    -ArgumentList @('_serve', '--host', '127.0.0.1', '--port', '8765', '--no-browser') `
-    -WorkingDirectory (Split-Path -Parent $processorExe) `
-    -RedirectStandardOutput $processorLog -RedirectStandardError $processorErrorLog -ErrorAction Stop | Out-Null
+try {
+    Start-Process -WindowStyle Hidden -FilePath $processorExe `
+        -ArgumentList @('_serve', '--host', '127.0.0.1', '--port', '8765', '--no-browser') `
+        -WorkingDirectory (Split-Path -Parent $processorExe) `
+        -RedirectStandardOutput $processorLog -RedirectStandardError $processorErrorLog -ErrorAction Stop | Out-Null
+} catch {
+    if ($_.Exception.Message -match "Application Control" -or $_.Exception.Message -match "blocked") {
+        Write-Host ""
+        Write-Host "======================================================================" -ForegroundColor Red
+        Write-Host " [!] CHU Y: Windows 11 Smart App Control dang chan chay file moi tai!" -ForegroundColor Yellow
+        Write-Host "----------------------------------------------------------------------" -ForegroundColor DarkGray
+        Write-Host " De mo khoa, ban chi can 1 thao tac don gian:" -ForegroundColor White
+        Write-Host " 1. Mo Start Menu, tim kiem: 'Smart App Control'" -ForegroundColor Cyan
+        Write-Host " 2. Chuyen trang thai sang 'Off' (Tat)" -ForegroundColor Yellow
+        Write-Host " (Hoac vao Windows Security -> Virus & threat protection -> Exclusions" -ForegroundColor DarkGray
+        Write-Host "  -> Them thu muc: $InstallDir)" -ForegroundColor DarkGray
+        Write-Host " Sau khi tat, go: wt de khoi dong tool." -ForegroundColor Green
+        Write-Host "======================================================================" -ForegroundColor Red
+        exit 0
+    } else {
+        throw
+    }
+}
 $verifiedHealth = $null
 for ($attempt = 0; $attempt -lt 30; $attempt++) {
     try {
-        $candidate = Invoke-RestMethod -Uri 'http://127.0.0.1:8765/api/health' -TimeoutSec 2 -Headers @{ Origin = 'https://wtstudio-ai.pages.dev' }
+        $candidate = Invoke-RestMethod -Uri 'http://127.0.0.1:8765/api/health' -TimeoutSec 2 -Headers @{ Origin = 'http://127.0.0.1:8765' }
         if ($candidate.version -eq $releaseVersion -and $candidate.capabilities.ffmpeg -and $candidate.capabilities.ffprobe -and $candidate.capabilities.edge_tts) {
             $verifiedHealth = $candidate
             break
