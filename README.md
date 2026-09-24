@@ -1,105 +1,40 @@
-# WT Studio - Video Vietnamese Localization Tool
+# WT Studio - ViệtDub Video AI (v2.0.79)
 
-**Current release: v2.0.73**
+Công cụ tự động hóa sản xuất video đa ngôn ngữ: cào video Douyin hàng loạt không logo, nhận dạng giọng nói, dịch thuật ngữ cảnh, lồng tiếng AI đa nhân vật và render GPU tốc độ cao.
 
-## Cài đặt nhanh (1 lệnh duy nhất)
+---
 
-### PowerShell:
+## ⚡ Cài đặt nhanh (1 lệnh duy nhất)
+
+### Dành cho PowerShell:
 ```powershell
-$installer = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1"
-& ([scriptblock]::Create([string]$installer)) -EnableStartup
+irm https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1 | iex
 ```
 
-### CMD:
+### Dành cho Command Prompt (CMD):
 ```cmd
-powershell -NoProfile -Command "$installer = Invoke-RestMethod -Uri 'https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1'; & ([scriptblock]::Create([string]$installer)) -EnableStartup"
-```
-
-Nếu muốn server local tự khởi động nền cùng Windows (không tự mở trình duyệt),
-chạy lệnh sau:
-
-```powershell
-$installer = Join-Path $env:TEMP "wtstudio-install.ps1"
-Invoke-RestMethod -Uri "https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1" -OutFile $installer
-powershell.exe -ExecutionPolicy Bypass -File $installer -EnableStartup
+powershell -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1 | iex"
 ```
 
 ---
 
-## Sau khi cài đặt:
+## 🚀 Khởi chạy & Cập nhật
 
-**Mở PowerShell/CMD mới và gõ:**
-```powershell
-wt
-```
+* **Khởi chạy tool**: Mở PowerShell hoặc CMD gõ:
+  ```bash
+  wt
+  ```
+  *(Hệ thống tự động kích hoạt bộ xử lý ngầm và mở Studio trên trình duyệt tại `http://127.0.0.1:8765`)*
 
-Với bản public hiện tại, `wt` tự kiểm tra processor, khởi động nền rồi mở website ViệtDub.
-Website sẽ kết nối tới bộ xử lý local trên `127.0.0.1:8765`.
-
-### Thử bản local 2.0.64
-
-Tag thử nghiệm không thay đổi bản `latest` cho người dùng hiện tại. Lệnh dưới đây
-cài đúng tag vào `%LOCALAPPDATA%\WTStudio-Preview` (không ghi đè thư mục
-WTStudio hiện có) và `wt` sẽ mở `http://127.0.0.1:8765/`:
-
-```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1))) -ReleaseTag v2.0.64-rc1
-```
-
-Bản local yêu cầu key ViệtDub. Hiện gói thanh toán Telegram 249k chưa tự phát
-key local; chỉ dùng tag thử nghiệm với key được tạo trong trang quản trị.
-
-Lệnh kỹ thuật để gọi trực tiếp processor vẫn được giữ:
-
-```powershell
-vietdub-processor
-```
-
-Khi bật `-EnableStartup`, WTStudio chỉ khởi động server nền; người dùng mở web
-khi cần. Có thể tắt bằng cách xóa shortcut `WT Studio (background).lnk` trong
-thư mục Startup của Windows.
+* **Cập nhật lên bản mới nhất**:
+  ```bash
+  wt update
+  ```
 
 ---
 
-## Cài đặt thủ công:
+## 💻 Yêu cầu hệ thống
 
-1. Tải ZIP mới nhất tại [GitHub Releases](https://github.com/wtrg/wtstudio-distribution/releases)
-2. Giải nén vào thư mục bất kỳ
-3. Chạy `wtstudio.exe`
-4. `wtstudio.exe` tự mở trình duyệt trên cổng loopback khả dụng.
-
----
-
-## Yêu cầu:
-
-- Windows 10/11 64-bit
-- 4GB RAM (khuyến nghị 8GB)
-- Kết nối Internet để Edge-TTS tạo giọng trực tuyến
-- FFmpeg được đóng gói trong processor
-- Installer kiểm tra đủ `ffmpeg.exe` và `ffprobe.exe` trước khi hoàn tất
-- NVIDIA GPU không bắt buộc cho Edge-TTS
-
----
-
-## Hỗ trợ:
-
-- GitHub Releases: https://github.com/wtrg/wtstudio-distribution/releases
-- Email: support@example.com
-
-## Gỡ cài đặt:
-
-Đóng WTStudio, xóa shortcut trên Desktop và shortcut trong thư mục Startup (nếu
-đã bật), sau đó xóa thư mục cài đặt mặc định:
-
-```powershell
-Remove-Item -LiteralPath "$env:LOCALAPPDATA\WTStudio" -Recurse -Force
-```
-
-Nếu muốn dọn PATH, xóa riêng đường dẫn `WTStudio` khỏi biến môi trường User.
-
----
-
-## Lưu ý:
-
-- Edge-TTS không cần tải model TTS nặng.
-- Processor mới được cài bổ sung vào thư mục WTStudio hiện có và không xóa project/user data.
+* **Hệ điều hành**: Windows 10 / 11 (64-bit)
+* **Phần cứng**: Tối thiểu 4GB RAM (Khuyến nghị 8GB RAM + GPU NVIDIA để tăng tốc render)
+* Đã tích hợp sẵn FFmpeg, Edge-TTS và toàn bộ runtime cần thiết.

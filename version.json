@@ -7,27 +7,11 @@
   "install_command_ps": "irm https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1 | iex",
   "install_command_cmd": "powershell -ExecutionPolicy Bypass -Command \"irm https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1 | iex\"",
   "features": [
-    "Cào kênh Douyin hàng loạt không watermark theo số lượng và tương tác cao nhất",
-    "Pipeline Render hàng loạt (Batch Pipeline) tự động từ dịch, lồng tiếng đến đóng dấu phụ đề",
-    "Bảng theo dõi tiến trình hàng loạt (BatchProgressModal) hỗ trợ xem trước, nút Hủy lẻ và Xóa toàn bộ",
-    "Tự động lên lịch đăng bài sang AiToEarn (TikTok, YouTube, Facebook) ngay sau khi render xong",
-    "Cào kênh Douyin hàng loạt (tối đa 15 video), tự động lọc video tương tác cao nhất (nhiều Tim & Bình luận) và tải gốc không watermark 1080p qua Microsoft Edge CDP Stealth",
-    "Khắc phục triệt để lỗi [WinError 32] xung đột chiếm dụng tệp tạm thời (.part) trên Windows khi lồng tiếng bằng cơ chế safe replace/unlink và token riêng biệt",
-    "Thử giọng nhân vật trực tiếp trên giao diện với hơn 83 giọng Neural AI (Thảo, Adam, Cuppy, Tào Tháo...) và Edge-TTS",
-    "Phân bổ tải Round-Robin đa luồng lên đến 6 luồng (4 API Groq độc lập + 2 API Gemini phụ trợ)",
-    "Tối ưu hóa model dịch thuật chi phí cực thấp, tiết kiệm token (llama-3.1-8b-instant & gemini-flash-lite-latest)",
-    "Ràng buộc ngữ cảnh nghiêm ngặt: dịch chuẩn điện ảnh theo ngữ cảnh toàn câu, xưng hô tự nhiên, không dịch thô word-by-word",
-    "Tự động nạp cấu hình và API key từ %LOCALAPPDATA%\\WTStudio\\.env",
-    "Cơ chế tự động chuyển làn (failover) thông minh khi gặp giới hạn hạn ngạch (OTPM/429)",
-    "Sửa triệt để lỗi Groq rate limited (OTPM 1000) khi dịch video dài, tự động chờ và thử lại thông minh",
-    "Chạy 100% Offline Local UI trên máy tại http://127.0.0.1:8765/ (xóa bỏ hoàn toàn web Cloudflare)",
-    "Sửa triệt để lỗi 'name os is not defined' trong tiến trình nhận dạng lời thoại",
-    "Toàn bộ kho giọng được gắn nhãn chuẩn '⭐ [Neural AI]' trên Web UI, tự động chọn giọng biểu cảm Thảo / Adam",
-    "Chuyển toàn bộ 83+ giọng lồng tiếng lên Cloud Neural TTS Serverless, 0% tốn RAM và xóa bỏ Saydi cổng 5000",
-    "Khắc phục triệt để lỗi phụ đề nửa màn hình bị vệt xanh neon và lộ chữ gốc bằng drawbox yuv420p",
-    "Sửa lỗi chọn giọng nữ Cuppy (Chị Google) chuẩn âm sắc trợ lý ảo nữ",
-    "Tối ưu tốc độ tải video Douyin/TikTok trực tiếp không logo trong 10-15s",
-    "Tăng tốc độ Render video lên tới 7.0x realtime (Intel QSV & NVIDIA NVENC)",
-    "Hỗ trợ lệnh 'wt' và 'wt update' trực tiếp từ bất kỳ cửa sổ CMD / Terminal"
+    "Cào kênh Douyin hàng loạt tự động lọc video tương tác cao, tải gốc không logo",
+    "Dịch thuật ngữ cảnh thông minh, lồng tiếng AI đa nhân vật và phụ đề thẩm mỹ",
+    "Che phụ đề gốc (Smart Masking) và tối ưu hóa Render phần cứng GPU NVENC siêu tốc",
+    "Giám sát tiến trình Render hàng loạt theo thời gian thực (hỗ trợ Hủy / Xóa linh hoạt)",
+    "Tự động lên lịch đăng video đa nền tảng (TikTok, YouTube, Facebook) qua AiToEarn",
+    "Hỗ trợ lệnh khởi chạy nhanh 'wt' và tự động cập nhật 'wt update' từ Terminal"
   ]
 }
