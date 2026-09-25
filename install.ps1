@@ -84,7 +84,11 @@ if ($runningProcesses.Count -gt 0) {
 New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
 $tempExtract = Join-Path $env:TEMP "WTStudio-extract-$([guid]::NewGuid().ToString('N'))"
 New-Item -ItemType Directory -Path $tempExtract -Force | Out-Null
-Expand-Archive -LiteralPath $tempZip -DestinationPath $tempExtract -Force
+if (Get-Command tar.exe -ErrorAction SilentlyContinue) {
+    & tar.exe -xf $tempZip -C $tempExtract
+} else {
+    Expand-Archive -LiteralPath $tempZip -DestinationPath $tempExtract -Force
+}
 $packageRoot = Join-Path $tempExtract "WTStudio"
 if (-not (Test-Path -LiteralPath (Join-Path $packageRoot "vietdub-processor\vietdub-processor.exe"))) {
     $packageRoot = $tempExtract
