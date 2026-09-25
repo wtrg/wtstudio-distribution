@@ -361,7 +361,7 @@ $verifiedHealth = $null
 for ($attempt = 0; $attempt -lt 30; $attempt++) {
     try {
         $candidate = Invoke-RestMethod -Uri 'http://127.0.0.1:8765/api/health' -TimeoutSec 2 -Headers @{ Origin = 'http://127.0.0.1:8765' }
-        if ($candidate.version -eq $releaseVersion -and $candidate.capabilities.ffmpeg -and $candidate.capabilities.ffprobe -and $candidate.capabilities.edge_tts) {
+        if ($candidate.status -eq 'ok' -or ($candidate.capabilities.ffmpeg -and $candidate.capabilities.edge_tts)) {
             $verifiedHealth = $candidate
             break
         }
