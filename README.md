@@ -1,4 +1,4 @@
-# WT Studio - ViệtDub Video AI (v2.0.79)
+# WT Studio - ViệtDub Video AI (v2.0.81)
 
 Công cụ tự động hóa sản xuất video đa ngôn ngữ: cào video Douyin hàng loạt không logo, nhận dạng giọng nói, dịch thuật ngữ cảnh, lồng tiếng AI đa nhân vật và render GPU tốc độ cao.
 
@@ -8,12 +8,12 @@ Công cụ tự động hóa sản xuất video đa ngôn ngữ: cào video Douy
 
 ### Dành cho PowerShell:
 ```powershell
-irm https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1 | iex
+iex (irm https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1)
 ```
 
 ### Dành cho Command Prompt (CMD):
 ```cmd
-powershell -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1 | iex"
+powershell -ExecutionPolicy Bypass -Command "iex (irm https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1)"
 ```
 
 ---

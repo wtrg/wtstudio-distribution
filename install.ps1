@@ -1,14 +1,10 @@
 # WTStudio public installer.
 # Downloads the latest release from wtrg/wtstudio-distribution.
-
-param(
-    [string]$InstallDir = "$env:LOCALAPPDATA\WTStudio",
-    [string]$ReleaseTag = "",
-    [switch]$EnableStartup
-)
-
-$ReleaseTag = $ReleaseTag.Trim()
-if ($ReleaseTag -and -not $PSBoundParameters.ContainsKey('InstallDir')) {
+if (-not $InstallDir) { $InstallDir = "$env:LOCALAPPDATA\WTStudio" }
+if (-not $ReleaseTag) { $ReleaseTag = "" }
+if (-not $EnableStartup) { $EnableStartup = $false }
+$ReleaseTag = "$ReleaseTag".Trim()
+if ($ReleaseTag -and $InstallDir -eq "$env:LOCALAPPDATA\WTStudio") {
     $InstallDir = Join-Path $env:LOCALAPPDATA 'WTStudio-Preview'
 }
 
@@ -159,7 +155,14 @@ if ($Command -in @('update', '--update', '-u')) {
     Write-Host "======================================================================" -ForegroundColor Cyan
     Write-Host "          WT STUDIO - DANG TIEN HANH CAP NHAT HE THONG                " -ForegroundColor Yellow
     Write-Host "======================================================================" -ForegroundColor Cyan
-    powershell -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1 | iex"
+    $tempScript = Join-Path $env:TEMP "wt-install-$([guid]::NewGuid().ToString('N')).ps1"
+    try {
+        [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12 -bor [System.Net.SecurityProtocolType]::Tls13
+        (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1", $tempScript)
+        & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $tempScript
+    } finally {
+        Remove-Item -LiteralPath $tempScript -Force -ErrorAction SilentlyContinue
+    }
     exit 0
 }
 
@@ -209,7 +212,14 @@ try {
         $ans = Read-Host " >> Ban co muon cap nhat ngay bay gio? (Y/N) [Y]"
         if ($ans -eq "" -or $ans -match "^[Yy]") {
             Write-Host " [UPDATE] Dang tai va cai dat ban moi v$latest..." -ForegroundColor Green
-            powershell -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1 | iex"
+            $tempScript = Join-Path $env:TEMP "wt-install-$([guid]::NewGuid().ToString('N')).ps1"
+            try {
+                [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12 -bor [System.Net.SecurityProtocolType]::Tls13
+                (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1", $tempScript)
+                & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $tempScript
+            } finally {
+                Remove-Item -LiteralPath $tempScript -Force -ErrorAction SilentlyContinue
+            }
             exit 0
         }
     } else {

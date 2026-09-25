@@ -4,8 +4,8 @@
   "release_date": "2026-09-25",
   "min_supported_version": "2.0.0",
   "download_url": "https://github.com/wtrg/wtstudio-distribution/releases/latest",
-  "install_command_ps": "irm https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1 | iex",
-  "install_command_cmd": "powershell -ExecutionPolicy Bypass -Command \"irm https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1 | iex\"",
+  "install_command_ps": "iex (irm https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1)",
+  "install_command_cmd": "powershell -ExecutionPolicy Bypass -Command \"iex (irm https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1)\"",
   "features": [
     "Tích hợp trọn bộ 83 giọng đọc Neural AI chuẩn phòng thu (Thảo, Tào Tháo, Adam, Cuppy, Ngọc Ngạn...) chạy 100% offline trên CPU máy tính",
     "Tốc độ sinh giọng cực nhanh (~1-2s), không phụ thuộc cloud hay tài khoản tính phí, tự động sinh phụ đề karaoke WordBoundary chính xác",
