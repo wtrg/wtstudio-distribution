@@ -1,16 +1,17 @@
 {
   "name": "WT Studio - ViệtDub Video AI",
-  "version": "2.0.80",
+  "version": "2.0.81",
   "release_date": "2026-09-25",
   "min_supported_version": "2.0.0",
   "download_url": "https://github.com/wtrg/wtstudio-distribution/releases/latest",
   "install_command_ps": "irm https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1 | iex",
   "install_command_cmd": "powershell -ExecutionPolicy Bypass -Command \"irm https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1 | iex\"",
   "features": [
+    "Tích hợp trọn bộ 83 giọng đọc Neural AI chuẩn phòng thu (Thảo, Tào Tháo, Adam, Cuppy, Ngọc Ngạn...) chạy 100% offline trên CPU máy tính",
+    "Tốc độ sinh giọng cực nhanh (~1-2s), không phụ thuộc cloud hay tài khoản tính phí, tự động sinh phụ đề karaoke WordBoundary chính xác",
+    "Cơ chế dự phòng thông minh (Auto Fallback Edge-TTS) đảm bảo quy trình Render không bao giờ bị đứt gãy hoặc treo tiến trình",
     "Cào kênh Douyin hàng loạt tự động lọc video tương tác cao, tải gốc không logo",
-    "Dịch thuật ngữ cảnh thông minh, lồng tiếng AI đa nhân vật và phụ đề thẩm mỹ",
     "Che phụ đề gốc (Smart Masking) và tối ưu hóa Render phần cứng GPU NVENC siêu tốc",
-    "Giám sát tiến trình Render hàng loạt theo thời gian thực (hỗ trợ Hủy / Xóa linh hoạt)",
     "Tự động lên lịch đăng video đa nền tảng (TikTok, YouTube, Facebook) qua AiToEarn",
     "Hỗ trợ lệnh khởi chạy nhanh 'wt' và tự động cập nhật 'wt update' từ Terminal"
   ]
