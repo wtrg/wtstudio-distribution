@@ -111,6 +111,17 @@ Get-ChildItem -LiteralPath $InstallDir -Recurse -ErrorAction SilentlyContinue | 
 try { Add-MpPreference -ExclusionPath $InstallDir -ErrorAction SilentlyContinue } catch { }
 New-Item -ItemType Directory -Path (Join-Path $InstallDir "runtime") -Force | Out-Null
 Set-Content -LiteralPath (Join-Path $InstallDir "runtime\installed_release_version.txt") -Value $releaseVersion -Encoding UTF8
+try {
+    $versionJsonPath = Join-Path $InstallDir "version.json"
+    $verObj = if (Test-Path -LiteralPath $versionJsonPath) {
+        Get-Content -LiteralPath $versionJsonPath -Raw | ConvertFrom-Json
+    } else {
+        [PSCustomObject]@{ name = "WT Studio - ViệtDub Video AI" }
+    }
+    $verObj.version = $releaseVersion
+    $verObj.release_date = (Get-Date -Format 'yyyy-MM-dd')
+    $verObj | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $versionJsonPath -Encoding UTF8
+} catch { }
 $processorExe = Join-Path $InstallDir "vietdub-processor\vietdub-processor.exe"
 if (-not (Test-Path -LiteralPath $processorExe)) {
     throw "The Edge-TTS processor was not found after installation."
@@ -190,7 +201,9 @@ if ($Command -in @('key', '--key')) {
 
 # Xac dinh phien ban hien tai
 $current = "__RELEASE_VERSION__"
-if (Test-Path (Join-Path $installDir "version.json")) {
+if (Test-Path (Join-Path $installDir "runtime\installed_release_version.txt")) {
+    try { $current = (Get-Content (Join-Path $installDir "runtime\installed_release_version.txt")).Trim() } catch {}
+} elseif (Test-Path (Join-Path $installDir "version.json")) {
     try { $current = (Get-Content (Join-Path $installDir "version.json") | ConvertFrom-Json).version } catch {}
 }
 
