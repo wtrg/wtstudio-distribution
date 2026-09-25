@@ -1,3 +1,4 @@
+if (-not $PSCommandPath) { $__f = Join-Path $env:TEMP "wt-install-$([guid]::NewGuid().ToString('N')).ps1"; try { [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12 -bor [System.Net.SecurityProtocolType]::Tls13; (New-Object System.Net.WebClient).DownloadFile('https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1', $__f); & "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File $__f } finally { Remove-Item -LiteralPath $__f -Force -ErrorAction SilentlyContinue }; exit 0 }
 # WTStudio public installer.
 # Downloads the latest release from wtrg/wtstudio-distribution.
 if (-not $InstallDir) { $InstallDir = "$env:LOCALAPPDATA\WTStudio" }
