@@ -1,7 +1,7 @@
 {
   "name": "WT Studio - ViệtDub Video AI",
-  "version": "2.0.81",
-  "release_date": "2026-09-25",
+  "version": "2.0.82",
+  "release_date": "2026-09-26",
   "min_supported_version": "2.0.0",
   "download_url": "https://github.com/wtrg/wtstudio-distribution/releases/latest",
   "install_command_ps": "iex (irm https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1)",
