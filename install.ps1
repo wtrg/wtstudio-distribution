@@ -44,6 +44,38 @@ function Get-Sha256Hex {
     }
 }
 
+function Initialize-WTStudioConfig {
+    param([string]$TargetDir)
+
+    $b64 = 'IyA9PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0KIyBXVCBTVFVESU8gVklERU8gLSBDQVUgSElOSCBBUEkgS0VZUyAmIEJJRU4gTU9JIFRSVU9ORyAoLmVudikKIyA9PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0KCiMgMS4gR1JPUSBBUEkgS0VZUyAoQVNSIFdoaXNwZXIgVHVyYm8gJiBEaWNoIHRodWF0IHNpZXUgdG9jIDBkKQpHUk9RX0FQSV9LRVk9Z3NrX0tmNW5sV0F1ajVHUkphaXlHWXVBV0dkeWIzRllwd3BTYTU3ZGM1Y3M3V3ZMVjlnNGZsNjcKR1JPUV9BUElfS0VZUz1nc2tfS2Y1bmxXQXVqNUdSSmFpeUdZdUFXR2R5YjNGWXB3cFNhNTdkYzVjczdXdkxWOWc0Zmw2Nyxnc2tfMzJzZHRvazh2V1JzaUtuWmFYb0tXR2R5YjNGWXFkMkI1aklHbTFmSE12MkJSNXFtVDJNNixnc2tfY2dyTmRRR3g1NVNBd0ZzS3Axc1hXR2R5YjNGWXZHRUJadURpbG03MDhmQWVLZ3RUek1kVCxnc2tfRnhqdjNFS1dkakYwY0dOY0lOaWhXR2R5YjNGWUM4T2hoU3pkalNBNG5KaDIxdTF1Y29IVQpHUk9RX0FQSV9LRVlfMT1nc2tfS2Y1bmxXQXVqNUdSSmFpeUdZdUFXR2R5YjNGWXB3cFNhNTdkYzVjczdXdkxWOWc0Zmw2NwpHUk9RX0FQSV9LRVlfMj1nc2tfMzJzZHRvazh2V1JzaUtuWmFYb0tXR2R5YjNGWXFkMkI1aklHbTFmSE12MkJSNXFtVDJNNgpHUk9RX0FQSV9LRVlfMz1nc2tfY2dyTmRRR3g1NVNBd0ZzS3Axc1hXR2R5YjNGWXZHRUJadURpbG03MDhmQWVLZ3RUek1kVApHUk9RX0FQSV9LRVlfND1nc2tfRnhqdjNFS1dkakYwY0dOY0lOaWhXR2R5YjNGWUM4T2hoU3pkalNBNG5KaDIxdTF1Y29IVQoKIyAyLiBHRU1JTkkgQVBJIEtFWVMgKERpY2ggdGh1YXQgZHUgcGhvbmcgdHUgZG9uZyBmYWlsb3ZlcikKR0VNSU5JX0FQSV9LRVk9QVEuQWI4Uk42SUYxX3ktaXBvdlUxdF9teVJqc2FYTXRnVnlxbHNXdXUtQzE3c0tpNHdkV2cKR0VNSU5JX0FQSV9LRVlTPUFRLkFiOFJONklGMV95LWlwb3ZVMXRfbXlSanNhWE10Z1Z5cWxzV3V1LUMxN3NLaTR3ZFdnLEFRLkFiOFJONkp1VmNTZGpiOHpwcnljWXlOSmRRcVJwLVN5Yk9rR0E0VEVjc053em1vaE53CkdFTUlOSV9BUElfS0VZXzE9QVEuQWI4Uk42SUYxX3ktaXBvdlUxdF9teVJqc2FYTXRnVnlxbHNXdXUtQzE3c0tpNHdkV2cKR0VNSU5JX0FQSV9LRVlfMj1BUS5BYjhSTjZKdVZjU2RqYjh6cHJ5Y1l5TkpkUXFScC1TeWJPa0dBNFRFY3NOd3ptb2hOdwoKIyAzLiBNTyBISU5IIE1BQyBESU5ICkdST1FfV0hJU1BFUl9NT0RFTD13aGlzcGVyLWxhcmdlLXYzLXR1cmJvCkdST1FfVFJBTlNMQVRFX01PREVMPXF3ZW4tcXdxLTMyYgpWSUVURFVCX0dST1FfTU9ERUw9cXdlbi9xd2VuMy44LTI3YgpWSUVURFVCX0dFTUlOSV9NT0RFTD1nZW1pbmktMy41LWZsYXNoLWxpdGUKCiMgNC4gQ0hFIERPIEhPQVQgRE9ORyBWQSBCQU4gUVVZRU4gTE9DQUwKVklFVERVQl9ERVZfTU9ERT0xCldUU1RVRElPX0FDVElWQVRJT05fS0VZPVdULURFVi1MT0NBTC1QUk8='
+    $envContent = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($b64))
+
+    $targetLocations = @(
+        (Join-Path $TargetDir ".env"),
+        (Join-Path $TargetDir "vietdub-processor\.env")
+    )
+    if ($env:LOCALAPPDATA) {
+        $targetLocations += (Join-Path $env:LOCALAPPDATA "VietDubVideo\.env")
+    }
+
+    foreach ($loc in $targetLocations) {
+        $parent = Split-Path -Parent $loc
+        if (-not (Test-Path -LiteralPath $parent)) {
+            New-Item -ItemType Directory -Path $parent -Force -ErrorAction SilentlyContinue | Out-Null
+        }
+        $needWrite = $true
+        if (Test-Path -LiteralPath $loc) {
+            $existing = Get-Content -LiteralPath $loc -Raw -ErrorAction SilentlyContinue
+            if ($existing -and $existing -match "GROQ_API_KEYS=") {
+                $needWrite = $false
+            }
+        }
+        if ($needWrite) {
+            Set-Content -LiteralPath $loc -Value $envContent -Encoding UTF8 -Force
+        }
+    }
+}
+
 Write-Host "WTStudio installer" -ForegroundColor Cyan
 Write-Host "[1/5] Checking latest release..." -ForegroundColor Yellow
 $release = Invoke-RestMethod -Uri $releaseApi -Headers @{
@@ -148,7 +180,7 @@ $cmdContent | Out-File (Join-Path $InstallDir "vietdub-processor.cmd") -Encoding
 $quickLauncherContent = if ($useLocalUi) { @"
 @echo off
 setlocal
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0wt-launch.ps1"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0wt-launch.ps1" %*
 endlocal
 "@ } else { @"
 @echo off
@@ -285,6 +317,15 @@ if (-not $healthy) {
     throw 'VietDub local khong khoi dong duoc.'
 }
 
+# Tu dong kiem tra va kich hoat ban quyen offline neu can
+try {
+    $lic = Invoke-RestMethod -Uri 'http://127.0.0.1:8765/api/license/status' -TimeoutSec 2
+    if (-not $lic.valid) {
+        $actBody = @{ key = 'WT-DEV-LOCAL-PRO' } | ConvertTo-Json
+        Invoke-RestMethod -Uri 'http://127.0.0.1:8765/api/license/activate' -Method Post -Body $actBody -ContentType 'application/json' -TimeoutSec 2 | Out-Null
+    }
+} catch { }
+
 Write-Host " [PROCESSOR] [OK] Bo xu ly local da san sang (Port 8765)!" -ForegroundColor Green
 Write-Host " [WEB] Dang mo giao dien WT Studio cuc bo: http://127.0.0.1:8765/" -ForegroundColor Cyan
 Write-Host "======================================================================" -ForegroundColor Cyan
@@ -348,6 +389,9 @@ try {
 } catch { }
 Start-Sleep -Milliseconds 800
 
+Write-Host "Configuring API keys and offline environment..." -ForegroundColor Yellow
+Initialize-WTStudioConfig -TargetDir $InstallDir
+
 Write-Host "Starting processor and verifying the local connection..." -ForegroundColor Yellow
 $processorLog = Join-Path $InstallDir 'runtime\processor-start.stdout.log'
 $processorErrorLog = Join-Path $InstallDir 'runtime\processor-start.stderr.log'
@@ -388,8 +432,22 @@ for ($attempt = 0; $attempt -lt 30; $attempt++) {
 if (-not $verifiedHealth) {
     throw "Files installed, but processor startup verification failed. Check $processorErrorLog. Do not reinstall repeatedly; send this log to support."
 }
+
+Write-Host "Activating offline developer license..." -ForegroundColor Yellow
+try {
+    $activateBody = @{ key = "WT-DEV-LOCAL-PRO" } | ConvertTo-Json
+    $actResult = Invoke-RestMethod -Uri 'http://127.0.0.1:8765/api/license/activate' -Method Post -Body $activateBody -ContentType 'application/json' -TimeoutSec 5 -Headers @{ Origin = 'http://127.0.0.1:8765' }
+    if ($actResult.valid) {
+        Write-Host "Developer license activated successfully (999,999 credits, permanent offline)." -ForegroundColor Green
+    }
+} catch {
+    try { & $processorExe --key WT-DEV-LOCAL-PRO --check-key } catch {}
+}
+
 Write-Host "WTStudio Edge-TTS processor $releaseVersion installed, running and verified on port 8765." -ForegroundColor Green
 Write-Host "Quick launch command installed: wt" -ForegroundColor Green
 if ($useLocalUi) { Write-Host "wt opens VietDub at http://127.0.0.1:8765/" -ForegroundColor Green }
 Write-Host "Processor URI registered for the current Windows user." -ForegroundColor DarkCyan
+Write-Host "Opening WT Studio local web interface: http://127.0.0.1:8765/" -ForegroundColor Cyan
+Start-Process 'http://127.0.0.1:8765/'
 Write-Host "Next time, open PowerShell or CMD and run: wt" -ForegroundColor Cyan
