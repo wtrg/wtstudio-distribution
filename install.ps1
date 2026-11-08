@@ -289,6 +289,16 @@ for ($attempt = 0; $attempt -lt 20; $attempt++) {
         if ($health.status -eq 'ok') { $healthy = $true; break }
     } catch { }
     if ($attempt -eq 0 -and (Test-Path $processor)) {
+        try {
+            $busyConns = Get-NetTCPConnection -LocalPort 8765 -State Listen -ErrorAction SilentlyContinue
+            foreach ($conn in $busyConns) {
+                if ($conn.OwningProcess -gt 0) {
+                    Write-Host " [PROCESSOR] Giai phong cong 8765 dang bi chiem boi PID $($conn.OwningProcess)..." -ForegroundColor Yellow
+                    Stop-Process -Id $conn.OwningProcess -Force -ErrorAction SilentlyContinue
+                    Start-Sleep -Milliseconds 300
+                }
+            }
+        } catch { }
         Write-Host " [PROCESSOR] Dang khoi dong vietdub-processor chay nen..." -ForegroundColor Gray
         Get-ChildItem -LiteralPath (Split-Path -Parent $processor) -Recurse -ErrorAction SilentlyContinue | Unblock-File -ErrorAction SilentlyContinue
         try {
