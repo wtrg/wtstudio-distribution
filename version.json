@@ -1,11 +1,11 @@
 {
   "name": "WT Studio - ViệtDub Video AI",
-  "version": "2.0.85",
+  "version": "2.0.86",
   "release_date": "2026-11-21",
   "min_supported_version": "2.0.84",
   "download_url": "https://github.com/wtrg/wtstudio-distribution/releases/latest",
-  "asset_url": "https://github.com/wtrg/wtstudio-distribution/releases/download/v2.0.85/WTStudio-2.0.85-Commercial.zip",
-  "sha256": "15a1874aa3c177d4465cca31a1e1c4de2edd8698c0b03a31e311e9c4a7b8c299",
+  "asset_url": "https://github.com/wtrg/wtstudio-distribution/releases/download/v2.0.86/WTStudio-2.0.86-Commercial.zip",
+  "sha256": "4022d5e67760789150d1acf9c5c4d0289a4f68033cee07d55b20396e99662f17",
   "install_command_ps": "irm https://wtstudio-gateway.wtshop.workers.dev/install.ps1 | iex",
   "install_command_cmd": "powershell -ExecutionPolicy Bypass -Command \"irm https://wtstudio-gateway.wtshop.workers.dev/install.ps1 | iex\"",
   "features": [
