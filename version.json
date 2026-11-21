@@ -1,18 +1,18 @@
 {
   "name": "WT Studio - ViệtDub Video AI",
-  "version": "2.0.87",
+  "version": "2.0.88",
   "release_date": "2026-11-21",
   "min_supported_version": "2.0.84",
   "download_url": "https://github.com/wtrg/wtstudio-distribution/releases/latest",
-  "asset_url": "https://github.com/wtrg/wtstudio-distribution/releases/download/v2.0.87/WTStudio-2.0.87-Commercial.zip",
-  "sha256": "9fd939ece05dae1eeb453554c534aa81107a97eeb1a2af0a1e895ae751d6cfaf",
+  "asset_url": "https://github.com/wtrg/wtstudio-distribution/releases/download/v2.0.88/WTStudio-2.0.88-Commercial.zip",
+  "sha256": "511cd7bf013e16f6d18f8ebd30d452eeaee94588c8bf8ce95d7c6ac1e59a57d1",
   "install_command_ps": "irm https://wtstudio-gateway.wtshop.workers.dev/install.ps1 | iex",
   "install_command_cmd": "powershell -ExecutionPolicy Bypass -Command \"irm https://wtstudio-gateway.wtshop.workers.dev/install.ps1 | iex\"",
   "features": [
     "Cài đặt & kích hoạt tự động qua 1 dòng lệnh PowerShell (hỗ trợ gắn sẵn Key WT_KEY hoặc nhập Key trực tiếp trên Web UI)",
-    "83 giọng Neural AI (VieNeu-TTS ONNX) chạy 100% offline đa luồng CPU (+41% tốc độ), hỗ trợ tạo voice độc lập tới 2000 ký tự & mượn khoảng lặng chống nói nhanh",
-    "2 giọng Edge-TTS tích hợp tách lô thông minh & bỏ qua cache 0ms khi tiếp tục video dài",
-    "Backend AI Gateway xoay vòng 4 Groq API Keys độc lập + đa tầng model (14 kênh dịch, 8 kênh ASR) + tự động dự phòng Gemini",
-    "Tăng tốc Render video bằng GPU NVIDIA NVENC & Intel QSV, tích hợp sẵn FFmpeg độc lập & cập nhật 1 lệnh (wtstudio update)"
+    "Nhận dạng ASR & Dịch AI đa luồng song song (14 kênh dịch, 8 kênh ASR) kèm lọc ảo giác Whisper tự động & tối ưu văn phong lồng tiếng tự nhiên",
+    "83 giọng Neural AI (VieNeu-TTS ONNX) chạy 100% offline đa luồng CPU (+41% tốc độ), tạo voice dài tới 2000 ký tự & mượn khoảng lặng chống nói nhanh",
+    "2 giọng Edge-TTS tích hợp tách lô thông minh, bỏ qua cache 0ms & đồng bộ pipeline cào Douyin (không tổng hợp lại khi render)",
+    "Tăng tốc Render video bằng GPU NVIDIA NVENC & Intel QSV, tự che chữ gốc thông minh & cập nhật 1 lệnh (wtstudio update)"
   ]
 }

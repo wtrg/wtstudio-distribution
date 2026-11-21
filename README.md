@@ -1,6 +1,6 @@
 # WT Studio - ViệtDub Video AI (Commercial Distribution)
 
-Phiên bản mới nhất: **v2.0.87** (2026-11-21)
+Phiên bản mới nhất: **v2.0.88** (2026-11-21)
 
 ## Cài đặt nhanh qua 1 dòng lệnh PowerShell (Windows 10/11 x64)
 
