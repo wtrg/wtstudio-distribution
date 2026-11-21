@@ -1,33 +1,30 @@
-if (-not $PSCommandPath) { $__f = Join-Path $env:TEMP "wt-install-$([guid]::NewGuid().ToString('N')).ps1"; try { [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12 -bor [System.Net.SecurityProtocolType]::Tls13; (New-Object System.Net.WebClient).DownloadFile('https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1', $__f); & "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File $__f } finally { Remove-Item -LiteralPath $__f -Force -ErrorAction SilentlyContinue }; exit 0 }
-# WTStudio public installer.
-# Downloads the latest release from wtrg/wtstudio-distribution.
-if (-not $InstallDir) { $InstallDir = "$env:LOCALAPPDATA\WTStudio" }
-if (-not $ReleaseTag) { $ReleaseTag = "" }
-if (-not $EnableStartup) { $EnableStartup = $false }
-$ReleaseTag = "$ReleaseTag".Trim()
-if ($ReleaseTag -and $InstallDir -eq "$env:LOCALAPPDATA\WTStudio") {
-    $InstallDir = Join-Path $env:LOCALAPPDATA 'WTStudio-Preview'
-}
+if (-not $PSCommandPath) { $__f = Join-Path $env:TEMP "wtstudio-install-$([guid]::NewGuid().ToString('N')).ps1"; try { [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12 -bor [System.Net.SecurityProtocolType]::Tls13; $wc = New-Object System.Net.WebClient; $wc.Headers.Add('User-Agent', 'WTStudio-Installer/2.0.85'); $wc.DownloadFile('https://wtstudio-gateway.wtshop.workers.dev/install.ps1', $__f); & "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File $__f; exit $LASTEXITCODE } finally { Remove-Item -LiteralPath $__f -Force -ErrorAction SilentlyContinue } }
+# ==============================================================================
+# WT STUDIO - COMMERCIAL ONE-LINE WINDOWS INSTALLER
+# Usage (Mode 2A - Auto activate):
+#   $env:WT_KEY="WTS-XXXX-XXXX-XXXX-XXXX"; irm https://wtstudio-gateway.wtshop.workers.dev/install.ps1 | iex
+# Usage (Mode 2B - Activate on Web UI):
+#   irm https://wtstudio-gateway.wtshop.workers.dev/install.ps1 | iex
+# ==============================================================================
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
+[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12 -bor [System.Net.SecurityProtocolType]::Tls13
 
-$ErrorActionPreference = "Stop"
-$ProgressPreference = "SilentlyContinue"
-$releaseApi = if ($ReleaseTag) {
-    "https://api.github.com/repos/wtrg/wtstudio-distribution/releases/tags/$([uri]::EscapeDataString($ReleaseTag))"
-} else {
-    "https://api.github.com/repos/wtrg/wtstudio-distribution/releases/latest"
-}
-$tempZip = Join-Path $env:TEMP "WTStudio-edge-processor-$([guid]::NewGuid().ToString('N')).zip"
+$GatewayBase = if ($env:WT_GATEWAY_URL) { $env:WT_GATEWAY_URL.TrimEnd('/') } else { 'https://wtstudio-gateway.wtshop.workers.dev' }
+$InstallDir  = if ($env:WT_INSTALL_DIR) { $env:WT_INSTALL_DIR } else { Join-Path $env:LOCALAPPDATA 'WTStudio' }
+$DataRoot    = if ($env:WT_DATA_ROOT) { $env:WT_DATA_ROOT } else { Join-Path $env:LOCALAPPDATA 'VietDubVideo' }
+$Port        = if ($env:WT_PORT -and $env:WT_PORT -match '^\d+$') { [int]$env:WT_PORT } else { 8765 }
+$ArchivePath = if ($env:WT_ARCHIVE_PATH) { $env:WT_ARCHIVE_PATH.Trim() } else { '' }
+$NoBrowser   = ($env:WT_NO_BROWSER -eq '1')
+$SkipShortcut = ($env:WT_SKIP_SHORTCUT -eq '1')
+$SkipPath    = ($env:WT_SKIP_PATH -eq '1')
 
-function Register-ProcessorProtocol {
-    param([string]$ProcessorPath)
-
-    $protocolKey = 'HKCU:\Software\Classes\wtstudio'
-    $commandKey = Join-Path $protocolKey 'shell\open\command'
-    New-Item -Path $commandKey -Force -ErrorAction Stop | Out-Null
-    New-ItemProperty -Path $protocolKey -Name '(Default)' -Value 'URL:WTStudio Processor' -PropertyType String -Force -ErrorAction Stop | Out-Null
-    New-ItemProperty -Path $protocolKey -Name 'URL Protocol' -Value '' -PropertyType String -Force -ErrorAction Stop | Out-Null
-    $command = '"{0}" _serve --host 127.0.0.1 --port 8765 --no-browser' -f $ProcessorPath
-    New-ItemProperty -Path $commandKey -Name '(Default)' -Value $command -PropertyType String -Force -ErrorAction Stop | Out-Null
+$LicenseKey = if ($env:WT_KEY) { $env:WT_KEY.Trim() } else { '' }
+if ($LicenseKey -match '^(?i)wts-') { $LicenseKey = $LicenseKey.ToUpperInvariant() }
+if ($LicenseKey -and $LicenseKey -notmatch '^(WTS-[A-Z0-9]{4}(-[A-Z0-9]{4}){2,3}|wtd_[a-f0-9]{64})$') {
+    Write-Host " [!] Canh bao: Ma ban quyen '$LicenseKey' khong dung dinh dang chuan (WTS-XXXX-XXXX-XXXX-XXXX)." -ForegroundColor Red
+    throw 'Ma ban quyen khong hop le. Vui long kiem tra lai tin nhan ban giao tu nguoi ban.'
 }
 
 function Get-Sha256Hex {
@@ -44,420 +41,451 @@ function Get-Sha256Hex {
     }
 }
 
-function Initialize-WTStudioConfig {
-    param([string]$TargetDir)
+function Register-ProcessorProtocol {
+    param([string]$ProcessorPath, [int]$ListenPort)
+    try {
+        $protocolKey = 'HKCU:\Software\Classes\wtstudio'
+        $commandKey = Join-Path $protocolKey 'shell\open\command'
+        New-Item -Path $commandKey -Force -ErrorAction Stop | Out-Null
+        New-ItemProperty -Path $protocolKey -Name '(Default)' -Value 'URL:WTStudio Processor' -PropertyType String -Force -ErrorAction Stop | Out-Null
+        New-ItemProperty -Path $protocolKey -Name 'URL Protocol' -Value '' -PropertyType String -Force -ErrorAction Stop | Out-Null
+        $command = '"{0}" _serve --host 127.0.0.1 --port {1} --no-browser --no-interactive' -f $ProcessorPath, $ListenPort
+        New-ItemProperty -Path $commandKey -Name '(Default)' -Value $command -PropertyType String -Force -ErrorAction Stop | Out-Null
+    } catch { }
+}
 
-    $b64 = 'IyA9PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0KIyBXVCBTVFVESU8gVklERU8gLSBDQVUgSElOSCBBUEkgS0VZUyAmIEJJRU4gTU9JIFRSVU9ORyAoLmVudikKIyA9PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0KCiMgMS4gR1JPUSBBUEkgS0VZUyAoQVNSIFdoaXNwZXIgVHVyYm8gJiBEaWNoIHRodWF0IHNpZXUgdG9jIDBkKQpHUk9RX0FQSV9LRVk9Z3NrX0tmNW5sV0F1ajVHUkphaXlHWXVBV0dkeWIzRllwd3BTYTU3ZGM1Y3M3V3ZMVjlnNGZsNjcKR1JPUV9BUElfS0VZUz1nc2tfS2Y1bmxXQXVqNUdSSmFpeUdZdUFXR2R5YjNGWXB3cFNhNTdkYzVjczdXdkxWOWc0Zmw2Nyxnc2tfMzJzZHRvazh2V1JzaUtuWmFYb0tXR2R5YjNGWXFkMkI1aklHbTFmSE12MkJSNXFtVDJNNixnc2tfY2dyTmRRR3g1NVNBd0ZzS3Axc1hXR2R5YjNGWXZHRUJadURpbG03MDhmQWVLZ3RUek1kVCxnc2tfRnhqdjNFS1dkakYwY0dOY0lOaWhXR2R5YjNGWUM4T2hoU3pkalNBNG5KaDIxdTF1Y29IVQpHUk9RX0FQSV9LRVlfMT1nc2tfS2Y1bmxXQXVqNUdSSmFpeUdZdUFXR2R5YjNGWXB3cFNhNTdkYzVjczdXdkxWOWc0Zmw2NwpHUk9RX0FQSV9LRVlfMj1nc2tfMzJzZHRvazh2V1JzaUtuWmFYb0tXR2R5YjNGWXFkMkI1aklHbTFmSE12MkJSNXFtVDJNNgpHUk9RX0FQSV9LRVlfMz1nc2tfY2dyTmRRR3g1NVNBd0ZzS3Axc1hXR2R5YjNGWXZHRUJadURpbG03MDhmQWVLZ3RUek1kVApHUk9RX0FQSV9LRVlfND1nc2tfRnhqdjNFS1dkakYwY0dOY0lOaWhXR2R5YjNGWUM4T2hoU3pkalNBNG5KaDIxdTF1Y29IVQoKIyAyLiBHRU1JTkkgQVBJIEtFWVMgKERpY2ggdGh1YXQgZHUgcGhvbmcgdHUgZG9uZyBmYWlsb3ZlcikKR0VNSU5JX0FQSV9LRVk9QVEuQWI4Uk42SUYxX3ktaXBvdlUxdF9teVJqc2FYTXRnVnlxbHNXdXUtQzE3c0tpNHdkV2cKR0VNSU5JX0FQSV9LRVlTPUFRLkFiOFJONklGMV95LWlwb3ZVMXRfbXlSanNhWE10Z1Z5cWxzV3V1LUMxN3NLaTR3ZFdnLEFRLkFiOFJONkp1VmNTZGpiOHpwcnljWXlOSmRRcVJwLVN5Yk9rR0E0VEVjc053em1vaE53CkdFTUlOSV9BUElfS0VZXzE9QVEuQWI4Uk42SUYxX3ktaXBvdlUxdF9teVJqc2FYTXRnVnlxbHNXdXUtQzE3c0tpNHdkV2cKR0VNSU5JX0FQSV9LRVlfMj1BUS5BYjhSTjZKdVZjU2RqYjh6cHJ5Y1l5TkpkUXFScC1TeWJPa0dBNFRFY3NOd3ptb2hOdwoKIyAzLiBNTyBISU5IIE1BQyBESU5ICkdST1FfV0hJU1BFUl9NT0RFTD13aGlzcGVyLWxhcmdlLXYzLXR1cmJvCkdST1FfVFJBTlNMQVRFX01PREVMPXF3ZW4tcXdxLTMyYgpWSUVURFVCX0dST1FfTU9ERUw9cXdlbi9xd2VuMy44LTI3YgpWSUVURFVCX0dFTUlOSV9NT0RFTD1nZW1pbmktMy41LWZsYXNoLWxpdGUKCiMgNC4gQ0hFIERPIEhPQVQgRE9ORyBWQSBCQU4gUVVZRU4gTE9DQUwKVklFVERVQl9ERVZfTU9ERT0xCldUU1RVRElPX0FDVElWQVRJT05fS0VZPVdULURFVi1MT0NBTC1QUk8='
-    $envContent = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($b64))
-
-    $targetLocations = @(
-        (Join-Path $TargetDir ".env"),
-        (Join-Path $TargetDir "vietdub-processor\.env")
-    )
-    if ($env:LOCALAPPDATA) {
-        $targetLocations += (Join-Path $env:LOCALAPPDATA "VietDubVideo\.env")
-    }
-
-    foreach ($loc in $targetLocations) {
-        $parent = Split-Path -Parent $loc
-        if (-not (Test-Path -LiteralPath $parent)) {
-            New-Item -ItemType Directory -Path $parent -Force -ErrorAction SilentlyContinue | Out-Null
-        }
-        $needWrite = $true
-        if (Test-Path -LiteralPath $loc) {
-            $existing = Get-Content -LiteralPath $loc -Raw -ErrorAction SilentlyContinue
-            if ($existing -and $existing -match "GROQ_API_KEYS=") {
-                $needWrite = $false
+function Stop-WTStudioPort {
+    param([int]$ListenPort)
+    Get-Process -Name 'vietdub-processor', 'wtstudio' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+    try {
+        $busy = Get-NetTCPConnection -LocalPort $ListenPort -State Listen -ErrorAction SilentlyContinue
+        foreach ($conn in $busy) {
+            if ($conn.OwningProcess -gt 0) {
+                Stop-Process -Id $conn.OwningProcess -Force -ErrorAction SilentlyContinue
             }
         }
-        if ($needWrite) {
-            Set-Content -LiteralPath $loc -Value $envContent -Encoding UTF8 -Force
+    } catch { }
+    Start-Sleep -Milliseconds 600
+}
+
+Write-Host ''
+Write-Host '======================================================================' -ForegroundColor Cyan
+Write-Host '         WT STUDIO - CAI DAT BAN THUONG MAI CHINH THUC                ' -ForegroundColor Yellow
+Write-Host '======================================================================' -ForegroundColor Cyan
+
+# [1/5] Fetch release manifest
+Write-Host '[1/5] Dang kiem tra phien ban moi nhat...' -ForegroundColor Yellow
+$manifest = $null
+try {
+    $manifest = Invoke-RestMethod -Uri "$GatewayBase/release.json" -TimeoutSec 12 -Headers @{ 'User-Agent' = 'WTStudio-Installer' }
+} catch {
+    Write-Host '  Khong tai duoc tu gateway, thu lay tu GitHub Releases...' -ForegroundColor DarkGray
+    $ghRel = Invoke-RestMethod -Uri 'https://api.github.com/repos/wtrg/wtstudio-distribution/releases/latest' -TimeoutSec 12 -Headers @{ 'User-Agent' = 'WTStudio-Installer'; 'Accept' = 'application/vnd.github+json' }
+    $ver = ($ghRel.tag_name.TrimStart('v') -split '-')[0]
+    $asset = $ghRel.assets | Where-Object { $_.name -like "WTStudio-$ver-Commercial*.zip" } | Select-Object -First 1
+    if (-not $asset) { throw 'Khong tim thay goi cai dat thuong mai tren GitHub Releases.' }
+    $expected = ''
+    if ($asset.digest -and $asset.digest.StartsWith('sha256:')) { $expected = $asset.digest.Substring(7).ToLowerInvariant() }
+    $manifest = [PSCustomObject]@{
+        version = $ver
+        url     = $asset.browser_download_url
+        sha256  = $expected
+    }
+}
+
+$releaseVersion = "$($manifest.version)".Trim()
+if ($releaseVersion -notmatch '^\d+\.\d+\.\d+$') {
+    throw "Phien ban phat hanh khong hop le: $releaseVersion"
+}
+Write-Host "  -> Phien ban: v$releaseVersion" -ForegroundColor Green
+
+$tempRoot = Join-Path $env:TEMP ("WTStudio-setup-" + [guid]::NewGuid().ToString('N'))
+New-Item -ItemType Directory -Path $tempRoot -Force | Out-Null
+
+try {
+    # [2/5] Download & verify SHA-256
+    if ($ArchivePath) {
+        $zipPath = (Resolve-Path -LiteralPath $ArchivePath).Path
+        Write-Host "[2/5] Su dung goi cai dat cuc bo: $zipPath" -ForegroundColor Yellow
+    } else {
+        $downloadUrl = [uri]$manifest.url
+        if ($downloadUrl.Scheme -ne 'https' -or $downloadUrl.Host -ne 'github.com' -or -not $downloadUrl.AbsolutePath.StartsWith('/wtrg/wtstudio-distribution/releases/download/')) {
+            throw "Dia chi tai xuong khong hop le: $($manifest.url)"
+        }
+        $zipPath = Join-Path $tempRoot "WTStudio-$releaseVersion-Commercial.zip"
+        Write-Host "[2/5] Dang tai WT Studio v$releaseVersion (~620 MB, vui long cho 1-2 phut)..." -ForegroundColor Yellow
+        if (Get-Command curl.exe -ErrorAction SilentlyContinue) {
+            & curl.exe -fL --retry 3 --retry-delay 2 --progress-bar -o $zipPath $downloadUrl.AbsoluteUri
+            if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $zipPath)) {
+                $wc = New-Object System.Net.WebClient
+                $wc.Headers.Add('User-Agent', 'WTStudio-Installer')
+                $wc.DownloadFile($downloadUrl.AbsoluteUri, $zipPath)
+            }
+        } else {
+            $wc = New-Object System.Net.WebClient
+            $wc.Headers.Add('User-Agent', 'WTStudio-Installer')
+            $wc.DownloadFile($downloadUrl.AbsoluteUri, $zipPath)
+        }
+        Unblock-File -LiteralPath $zipPath -ErrorAction SilentlyContinue
+    }
+
+    if ($manifest.sha256 -and $manifest.sha256 -match '^[a-fA-F0-9]{64}$') {
+        Write-Host '  -> Dang kiem tra toan ven SHA-256...' -ForegroundColor Gray
+        $actualHash = Get-Sha256Hex $zipPath
+        if ($actualHash -ne $manifest.sha256.ToLowerInvariant()) {
+            throw "Loi kiem tra SHA-256! File tai ve bi hong. Vui long chay lai lenh cai dat."
+        }
+        Write-Host '  -> SHA-256 hop le.' -ForegroundColor Green
+    }
+
+    # Validate archive entries against zip-slip before extraction
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $archive = [IO.Compression.ZipFile]::OpenRead($zipPath)
+    try {
+        foreach ($entry in $archive.Entries) {
+            if ($entry.FullName -match '(^|[/\\])\.\.([/\\]|$)|^[\\/]|:') {
+                throw 'Goi cai dat chua duong dan khong an toan.'
+            }
+            if (-not $entry.FullName.Replace('\', '/').StartsWith('WTStudio/')) {
+                throw 'Cau truc goi cai dat khong dung chuan WTStudio.'
+            }
+        }
+    } finally {
+        $archive.Dispose()
+    }
+
+    # [3/5] Extract & cleanly install/upgrade
+    Write-Host '[3/5] Dang giai nen va cai dat (giu nguyen du an & ban quyen cu)...' -ForegroundColor Yellow
+    $extractDir = Join-Path $tempRoot 'extract'
+    New-Item -ItemType Directory -Path $extractDir -Force | Out-Null
+    [IO.Compression.ZipFile]::ExtractToDirectory($zipPath, $extractDir)
+
+    $bundleDir = Join-Path $extractDir 'WTStudio'
+    if (-not (Test-Path -LiteralPath (Join-Path $bundleDir 'vietdub-processor\vietdub-processor.exe'))) {
+        throw 'Thieu file loi vietdub-processor.exe trong goi cai dat.'
+    }
+
+    Stop-WTStudioPort -ListenPort $Port
+    New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
+
+    # Cleanly replace processor, ffmpeg, models, licenses so zero legacy v2.0.83 files remain
+    foreach ($sub in @('vietdub-processor', 'ffmpeg', 'models', 'licenses')) {
+        $srcSub = Join-Path $bundleDir $sub
+        $dstSub = Join-Path $InstallDir $sub
+        if (Test-Path -LiteralPath $srcSub) {
+            if (Test-Path -LiteralPath $dstSub) {
+                Remove-Item -LiteralPath $dstSub -Recurse -Force -ErrorAction Stop
+            }
+            try {
+                Move-Item -LiteralPath $srcSub -Destination $dstSub -Force
+            } catch {
+                Copy-Item -LiteralPath $srcSub -Destination $dstSub -Recurse -Force
+            }
         }
     }
-}
-
-Write-Host "WTStudio installer" -ForegroundColor Cyan
-Write-Host "[1/5] Checking latest release..." -ForegroundColor Yellow
-$release = Invoke-RestMethod -Uri $releaseApi -Headers @{
-    "User-Agent" = "WTStudio-Installer"
-    "Accept" = "application/vnd.github+json"
-}
-$releaseVersion = ($release.tag_name.TrimStart('v') -split '-')[0]
-$useLocalUi = [version]$releaseVersion -ge [version]'2.0.64'
-$releaseAsset = $release.assets |
-    Where-Object { $_.name -like "WTStudio-$releaseVersion-EdgeProcessor*.zip" -and $_.name -notlike '*Delta*' } |
-    Select-Object -First 1
-if (-not $releaseAsset) {
-    throw "No Edge-TTS processor ZIP found in the latest distribution release."
-}
-
-Write-Host "[2/5] Downloading WTStudio $releaseVersion..." -ForegroundColor Yellow
-Invoke-WebRequest -Uri $releaseAsset.browser_download_url -OutFile $tempZip -UseBasicParsing
-Unblock-File -LiteralPath $tempZip -ErrorAction SilentlyContinue
-
-if ($releaseAsset.size -and (Get-Item -LiteralPath $tempZip).Length -ne [int64]$releaseAsset.size) {
-    throw "Downloaded file size does not match the GitHub release asset."
-}
-if ($releaseAsset.digest -and $releaseAsset.digest.StartsWith("sha256:")) {
-    $expectedHash = $releaseAsset.digest.Substring(7).ToLowerInvariant()
-    $actualHash = Get-Sha256Hex $tempZip
-    if ($actualHash -ne $expectedHash) {
-        throw "Downloaded file checksum does not match the GitHub release asset."
+    foreach ($file in Get-ChildItem -LiteralPath $bundleDir -File -Force) {
+        Copy-Item -LiteralPath $file.FullName -Destination (Join-Path $InstallDir $file.Name) -Force
     }
-}
-
-Write-Host "[3/5] Preserving the existing installation and installing the Edge-TTS processor..." -ForegroundColor Yellow
-$runningProcesses = @(Get-Process -Name "wtstudio", "vietdub-processor" -ErrorAction SilentlyContinue)
-if ($runningProcesses.Count -gt 0) {
-    Write-Host "Stopping running WTStudio processes..." -ForegroundColor Yellow
-    $runningProcesses | Stop-Process -Force -ErrorAction SilentlyContinue
-    Start-Sleep -Seconds 2
-}
-New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
-$tempExtract = Join-Path $env:TEMP "WTStudio-extract-$([guid]::NewGuid().ToString('N'))"
-New-Item -ItemType Directory -Path $tempExtract -Force | Out-Null
-if (Get-Command tar.exe -ErrorAction SilentlyContinue) {
-    & tar.exe -xf $tempZip -C $tempExtract
-} else {
-    Expand-Archive -LiteralPath $tempZip -DestinationPath $tempExtract -Force
-}
-$packageRoot = Join-Path $tempExtract "WTStudio"
-if (-not (Test-Path -LiteralPath (Join-Path $packageRoot "vietdub-processor\vietdub-processor.exe"))) {
-    $packageRoot = $tempExtract
-}
-foreach ($item in Get-ChildItem -LiteralPath $packageRoot -Recurse -File -Force) {
-    $relative = $item.FullName.Substring($packageRoot.TrimEnd('\').Length + 1)
-    $dest = Join-Path $InstallDir $relative
-    New-Item -ItemType Directory -Path (Split-Path -Parent $dest) -Force | Out-Null
-    Copy-Item -LiteralPath $item.FullName -Destination $dest -Force
-}
-foreach ($required in @('vietdub-processor\vietdub-processor.exe', 'ffmpeg\ffmpeg.exe', 'ffmpeg\ffprobe.exe')) {
-    $sourceFile = Join-Path $packageRoot $required
-    $targetFile = Join-Path $InstallDir $required
-    if (-not (Test-Path -LiteralPath $sourceFile -PathType Leaf) -or
-        -not (Test-Path -LiteralPath $targetFile -PathType Leaf) -or
-        (Get-Sha256Hex $sourceFile) -ne (Get-Sha256Hex $targetFile)) {
-        throw "Installation verification failed: $required does not match the release."
+    # Remove any obsolete legacy .env from install directory
+    foreach ($oldEnv in @((Join-Path $InstallDir '.env'), (Join-Path $InstallDir 'vietdub-processor\.env'))) {
+        if (Test-Path -LiteralPath $oldEnv) { Remove-Item -LiteralPath $oldEnv -Force -ErrorAction SilentlyContinue }
     }
-}
-Remove-Item -LiteralPath $tempExtract -Recurse -Force
-Remove-Item -LiteralPath $tempZip -Force -ErrorAction SilentlyContinue
-Write-Host "Unblocking installed files and registering exclusion..." -ForegroundColor Gray
-Get-ChildItem -LiteralPath $InstallDir -Recurse -ErrorAction SilentlyContinue | Unblock-File -ErrorAction SilentlyContinue
-try { Add-MpPreference -ExclusionPath $InstallDir -ErrorAction SilentlyContinue } catch { }
-New-Item -ItemType Directory -Path (Join-Path $InstallDir "runtime") -Force | Out-Null
-Set-Content -LiteralPath (Join-Path $InstallDir "runtime\installed_release_version.txt") -Value $releaseVersion -Encoding UTF8
-try {
-    $versionJsonPath = Join-Path $InstallDir "version.json"
-    $verObj = if (Test-Path -LiteralPath $versionJsonPath) {
-        Get-Content -LiteralPath $versionJsonPath -Raw | ConvertFrom-Json
-    } else {
-        [PSCustomObject]@{ name = "WT Studio - ViệtDub Video AI" }
-    }
-    $verObj.version = $releaseVersion
-    $verObj.release_date = (Get-Date -Format 'yyyy-MM-dd')
-    $verObj | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $versionJsonPath -Encoding UTF8
-} catch { }
-$processorExe = Join-Path $InstallDir "vietdub-processor\vietdub-processor.exe"
-if (-not (Test-Path -LiteralPath $processorExe)) {
-    throw "The Edge-TTS processor was not found after installation."
-}
-$ffmpegDir = Join-Path $InstallDir "ffmpeg"
-foreach ($binaryName in @('ffmpeg.exe', 'ffprobe.exe')) {
-    if (-not (Test-Path -LiteralPath (Join-Path $ffmpegDir $binaryName) -PathType Leaf)) {
-        throw "The WTStudio package is incomplete: $binaryName is missing from the bundled ffmpeg folder."
-    }
-}
-Register-ProcessorProtocol -ProcessorPath $processorExe
 
-Write-Host "[4/5] Creating launcher..." -ForegroundColor Yellow
-$cmdContent = @"
-@echo off
-"%~dp0vietdub-processor\vietdub-processor.exe" %*
-"@
-$cmdContent | Out-File (Join-Path $InstallDir "vietdub-processor.cmd") -Encoding ASCII -Force
+    $processorExe = Join-Path $InstallDir 'vietdub-processor\vietdub-processor.exe'
+    foreach ($req in @('vietdub-processor\vietdub-processor.exe', 'ffmpeg\ffmpeg.exe', 'ffmpeg\ffprobe.exe')) {
+        if (-not (Test-Path -LiteralPath (Join-Path $InstallDir $req) -PathType Leaf)) {
+            throw "Cai dat that bai: thieu thanh phan bat buoc ($req)."
+        }
+    }
 
-$quickLauncherContent = if ($useLocalUi) { @"
-@echo off
-setlocal
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0wt-launch.ps1" %*
-endlocal
-"@ } else { @"
-@echo off
-setlocal
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "`$healthy=`$false; try { `$null=Invoke-RestMethod -Uri 'http://127.0.0.1:8765/api/health' -TimeoutSec 2 }; `$healthy=`$true } catch {}; if (-not `$healthy) { Start-Process -WindowStyle Hidden -FilePath '%~dp0vietdub-processor\vietdub-processor.exe' -ArgumentList '_serve','--host','127.0.0.1','--port','8765','--no-browser' -WorkingDirectory '%~dp0vietdub-processor' }; Start-Process 'http://127.0.0.1:8765/'"
-endlocal
-"@ }
-$quickLauncherContent | Out-File (Join-Path $InstallDir "wt.cmd") -Encoding ASCII -Force
-if ($useLocalUi) {
-    $localLauncher = @'
+    Write-Host '  -> Dang go chan (Unblock-File) cho Windows...' -ForegroundColor Gray
+    Get-ChildItem -LiteralPath $InstallDir -Recurse -ErrorAction SilentlyContinue | Unblock-File -ErrorAction SilentlyContinue
+    try { Add-MpPreference -ExclusionPath $InstallDir -ErrorAction SilentlyContinue } catch { }
+
+    New-Item -ItemType Directory -Path (Join-Path $InstallDir 'runtime') -Force | Out-Null
+    Set-Content -LiteralPath (Join-Path $InstallDir 'runtime\installed_release_version.txt') -Value $releaseVersion -Encoding UTF8
+    Register-ProcessorProtocol -ProcessorPath $processorExe -ListenPort $Port
+
+    # [4/5] Create launchers, PATH & Desktop shortcut
+    Write-Host '[4/5] Dang tao trinh khoi dong nhanh (wtstudio / wt) va bieu tuong Desktop...' -ForegroundColor Yellow
+
+    $launcherPs1 = @'
 param([string]$Command, [string]$Arg1)
-
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $ErrorActionPreference = 'Stop'
 $installDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $processor = Join-Path $installDir 'vietdub-processor\vietdub-processor.exe'
+$gateway = '__GATEWAY_BASE__'
+$port = __PORT__
+$dataRoot = '__DATA_ROOT__'
+$env:VIETDUB_LICENSE_API_URL = $gateway
+$env:VIETDUB_DATA_ROOT = $dataRoot
+$env:VIETDUB_DEV_MODE = '0'
+$env:VIETDUB_ALLOWED_ORIGINS = "http://127.0.0.1:$port,http://localhost:$port"
 
-# 1. Xu ly lenh wt update / wt --update
 if ($Command -in @('update', '--update', '-u')) {
-    Write-Host "======================================================================" -ForegroundColor Cyan
-    Write-Host "          WT STUDIO - DANG TIEN HANH CAP NHAT HE THONG                " -ForegroundColor Yellow
-    Write-Host "======================================================================" -ForegroundColor Cyan
-    $tempScript = Join-Path $env:TEMP "wt-install-$([guid]::NewGuid().ToString('N')).ps1"
+    Write-Host '=== WT STUDIO - DANG CAP NHAT PHIEN BAN MOI ===' -ForegroundColor Cyan
+    $tmp = Join-Path $env:TEMP "wtstudio-update-$([guid]::NewGuid().ToString('N')).ps1"
     try {
         [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12 -bor [System.Net.SecurityProtocolType]::Tls13
-        (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1", $tempScript)
-        & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $tempScript
-    } finally {
-        Remove-Item -LiteralPath $tempScript -Force -ErrorAction SilentlyContinue
-    }
+        (New-Object System.Net.WebClient).DownloadFile("$gateway/install.ps1", $tmp)
+        & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $tmp
+    } finally { Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue }
     exit 0
 }
 
-# 2. Xu ly lenh wt check-update / wt --check-update
+if ($Command -in @('stop', '--stop')) {
+    Get-Process -Name 'vietdub-processor' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+    Write-Host '[OK] Da dung WT Studio.' -ForegroundColor Green
+    exit 0
+}
+
 if ($Command -in @('check-update', '--check-update', 'check')) {
-    if (Test-Path $processor) {
-        & $processor --check-update
-    } else {
-        $online = (Invoke-RestMethod -Uri "https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/version.json").version
-        Write-Host "Phien ban online moi nhat: v$online"
+    $current = '__RELEASE_VERSION__'
+    if (Test-Path (Join-Path $installDir 'runtime\installed_release_version.txt')) {
+        try { $current = (Get-Content (Join-Path $installDir 'runtime\installed_release_version.txt')).Trim() } catch {}
     }
+    try {
+        $rel = Invoke-RestMethod -Uri "$gateway/release.json" -TimeoutSec 6 -Headers @{ 'User-Agent' = 'WTStudio' }
+        Write-Host "Phien ban hien tai: v$current | Phien ban moi nhat: v$($rel.version)" -ForegroundColor Cyan
+        if ([version]$rel.version -gt [version]$current) {
+            Write-Host 'Da co ban cap nhat moi! Chay lenh: wtstudio update' -ForegroundColor Yellow
+        } else {
+            Write-Host '[OK] Ban dang dung phien ban moi nhat.' -ForegroundColor Green
+        }
+    } catch { Write-Host "Khong kiem tra duoc cap nhat: $($_.Exception.Message)" -ForegroundColor Red }
     exit 0
 }
 
-# 3. Xu ly lenh wt key
 if ($Command -in @('key', '--key')) {
-    if ($Arg1 -and (Test-Path $processor)) {
-        & $processor --key $Arg1 --check-key
-    } elseif (Test-Path $processor) {
-        & $processor --check-key
-    }
-    exit 0
-}
-
-# Xac dinh phien ban hien tai
-$current = "__RELEASE_VERSION__"
-if (Test-Path (Join-Path $installDir "runtime\installed_release_version.txt")) {
-    try { $current = (Get-Content (Join-Path $installDir "runtime\installed_release_version.txt")).Trim() } catch {}
-} elseif (Test-Path (Join-Path $installDir "version.json")) {
-    try { $current = (Get-Content (Join-Path $installDir "version.json") | ConvertFrom-Json).version } catch {}
-}
-
-Write-Host "======================================================================" -ForegroundColor Cyan
-Write-Host "   WT STUDIO - VIETDUB VIDEO AI (HE THONG LONG TIENG & RENDER)        " -ForegroundColor Yellow
-Write-Host "   Phien ban may cua ban: v$current  |  Platform: Windows x64         " -ForegroundColor White
-Write-Host "======================================================================" -ForegroundColor Cyan
-Write-Host " [UPDATE] Dang kiem tra ban cap nhat tu GitHub..." -ForegroundColor Gray
-
-# 4. Kiem tra cap nhat tu GitHub Distribution
-try {
-    $verData = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/version.json" -TimeoutSec 4 -Headers @{ "User-Agent" = "WTStudio" }
-    $latest = $verData.version
-    if ($latest -and [version]$latest -gt [version]$current) {
-        Write-Host "----------------------------------------------------------------------" -ForegroundColor Yellow
-        Write-Host " [UPDATE] >>> DA CO BAN CAP NHAT MOI: v$latest (Hien tai: v$current) <<<" -ForegroundColor Red
-        Write-Host " Tinh nang noi bat:" -ForegroundColor White
-        foreach ($f in $verData.features) { Write-Host "   + $f" -ForegroundColor Yellow }
-        Write-Host "----------------------------------------------------------------------" -ForegroundColor Yellow
-        $ans = Read-Host " >> Ban co muon cap nhat ngay bay gio? (Y/N) [Y]"
-        if ($ans -eq "" -or $ans -match "^[Yy]") {
-            Write-Host " [UPDATE] Dang tai va cai dat ban moi v$latest..." -ForegroundColor Green
-            $tempScript = Join-Path $env:TEMP "wt-install-$([guid]::NewGuid().ToString('N')).ps1"
-            try {
-                [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12 -bor [System.Net.SecurityProtocolType]::Tls13
-                (New-Object System.Net.WebClient).DownloadFile("https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1", $tempScript)
-                & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $tempScript
-            } finally {
-                Remove-Item -LiteralPath $tempScript -Force -ErrorAction SilentlyContinue
-            }
-            exit 0
+    if ($Arg1) {
+        $normKey = $Arg1.Trim()
+        if ($normKey -match '^(?i)wts-') { $normKey = $normKey.ToUpperInvariant() }
+        try {
+            $body = @{ key = $normKey } | ConvertTo-Json
+            $res = Invoke-RestMethod -Uri "http://127.0.0.1:$port/api/license/activate" -Method Post -ContentType 'application/json' -Body $body -TimeoutSec 10
+            if ($res.valid) { Write-Host '[OK] Kich hoat ban quyen thanh cong!' -ForegroundColor Green; exit 0 }
+        } catch {
+            Write-Host "[!] Chua kich hoat duoc qua server local ($($_.Exception.Message)). Hay mo tool va nhap key tren Web." -ForegroundColor Yellow
         }
     } else {
-        Write-Host " [UPDATE] [OK] Ban dang su dung phien ban moi nhat (v$current)." -ForegroundColor Green
+        try {
+            $st = Invoke-RestMethod -Uri "http://127.0.0.1:$port/api/license/status" -TimeoutSec 5
+            Write-Host ("Trang thai ban quyen: valid={0} | status={1}" -f $st.valid, $st.status) -ForegroundColor Cyan
+        } catch { Write-Host 'WT Studio chua chay. Go wtstudio de mo.' -ForegroundColor Yellow }
     }
-} catch {
-    Write-Host " [UPDATE] Khong the ket noi GitHub kiem tra update ($($_.Exception.Message))." -ForegroundColor DarkGray
+    exit 0
 }
-Write-Host "----------------------------------------------------------------------" -ForegroundColor DarkGray
 
-# 5. Khoi dong Processor neu chua chay
-Write-Host " [PROCESSOR] Dang kiem tra bo xu ly local tren cong 8765..." -ForegroundColor Gray
+$current = '__RELEASE_VERSION__'
+if (Test-Path (Join-Path $installDir 'runtime\installed_release_version.txt')) {
+    try { $current = (Get-Content (Join-Path $installDir 'runtime\installed_release_version.txt')).Trim() } catch {}
+}
+
+Write-Host '======================================================================' -ForegroundColor Cyan
+Write-Host "   WT STUDIO - VIETDUB VIDEO AI (v$current)                           " -ForegroundColor Yellow
+Write-Host '======================================================================' -ForegroundColor Cyan
+
+try {
+    $rel = Invoke-RestMethod -Uri "$gateway/release.json" -TimeoutSec 3 -Headers @{ 'User-Agent' = 'WTStudio' }
+    if ($rel.version -and [version]$rel.version -gt [version]$current) {
+        Write-Host " [UPDATE] Da co ban moi v$($rel.version)! Go 'wtstudio update' de nang cap." -ForegroundColor Yellow
+    }
+} catch { }
+
 $healthy = $false
-for ($attempt = 0; $attempt -lt 20; $attempt++) {
+for ($attempt = 0; $attempt -lt 30; $attempt++) {
     try {
-        $health = Invoke-RestMethod -Uri 'http://127.0.0.1:8765/api/health' -TimeoutSec 2
+        $health = Invoke-RestMethod -Uri "http://127.0.0.1:$port/api/health" -TimeoutSec 2
         if ($health.status -eq 'ok') { $healthy = $true; break }
     } catch { }
     if ($attempt -eq 0 -and (Test-Path $processor)) {
         try {
-            $busyConns = Get-NetTCPConnection -LocalPort 8765 -State Listen -ErrorAction SilentlyContinue
+            $busyConns = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
             foreach ($conn in $busyConns) {
                 if ($conn.OwningProcess -gt 0) {
-                    Write-Host " [PROCESSOR] Giai phong cong 8765 dang bi chiem boi PID $($conn.OwningProcess)..." -ForegroundColor Yellow
                     Stop-Process -Id $conn.OwningProcess -Force -ErrorAction SilentlyContinue
                     Start-Sleep -Milliseconds 300
                 }
             }
         } catch { }
-        Write-Host " [PROCESSOR] Dang khoi dong vietdub-processor chay nen..." -ForegroundColor Gray
         Get-ChildItem -LiteralPath (Split-Path -Parent $processor) -Recurse -ErrorAction SilentlyContinue | Unblock-File -ErrorAction SilentlyContinue
         try {
-            Start-Process -WindowStyle Hidden -FilePath $processor -ArgumentList @('_serve','--host','127.0.0.1','--port','8765','--no-browser') -WorkingDirectory (Split-Path -Parent $processor) -ErrorAction Stop
+            Start-Process -WindowStyle Hidden -FilePath $processor -ArgumentList @('_serve', '--host', '127.0.0.1', '--port', "$port", '--no-browser', '--no-interactive') -WorkingDirectory (Split-Path -Parent $processor) -ErrorAction Stop
         } catch {
-            if ($_.Exception.Message -match "Application Control" -or $_.Exception.Message -match "blocked") {
-                Write-Host ""
-                Write-Host "======================================================================" -ForegroundColor Red
-                Write-Host " [!] CHU Y: Windows 11 Smart App Control dang chan chay file moi tai!" -ForegroundColor Yellow
-                Write-Host "----------------------------------------------------------------------" -ForegroundColor DarkGray
-                Write-Host " De mo khoa, ban chi can 1 thao tac don gian:" -ForegroundColor White
-                Write-Host " 1. Mo Start Menu, tim kiem: 'Smart App Control'" -ForegroundColor Cyan
-                Write-Host " 2. Chuyen trang thai sang 'Off' (Tat)" -ForegroundColor Yellow
-                Write-Host " (Hoac vao Windows Security -> Virus & threat protection -> Exclusions" -ForegroundColor DarkGray
-                Write-Host "  -> Them thu muc: $(Split-Path -Parent $processor))" -ForegroundColor DarkGray
-                Write-Host " Sau khi tat, go: wt de khoi dong tool." -ForegroundColor Green
-                Write-Host "======================================================================" -ForegroundColor Red
-                break
+            if ($_.Exception.Message -match 'Application Control|blocked') {
+                Write-Host '======================================================================' -ForegroundColor Red
+                Write-Host ' [!] Windows 11 Smart App Control dang chan chay ung dung!' -ForegroundColor Yellow
+                Write-Host ' Cach mo khoa (2 buoc):' -ForegroundColor White
+                Write-Host " 1. Mo Start Menu -> tim 'Smart App Control' -> chuyen sang Off (Tat)" -ForegroundColor Cyan
+                Write-Host " 2. Chay lai lenh: wtstudio" -ForegroundColor Green
+                Write-Host '======================================================================' -ForegroundColor Red
+                exit 1
             }
+            throw
         }
     }
     Start-Sleep -Milliseconds 500
 }
-if (-not $healthy) { 
-    Write-Host " [!] LOI: VietDub local khong khoi dong duoc. Kiem tra cong 8765." -ForegroundColor Red
-    throw 'VietDub local khong khoi dong duoc.'
+if (-not $healthy) {
+    Write-Host " [!] Khong khoi dong duoc WT Studio tren cong $port." -ForegroundColor Red
+    exit 1
 }
 
-# Tu dong kiem tra va kich hoat ban quyen offline neu can
-try {
-    $lic = Invoke-RestMethod -Uri 'http://127.0.0.1:8765/api/license/status' -TimeoutSec 2
-    if (-not $lic.valid) {
-        $actBody = @{ key = 'WT-DEV-LOCAL-PRO' } | ConvertTo-Json
-        Invoke-RestMethod -Uri 'http://127.0.0.1:8765/api/license/activate' -Method Post -Body $actBody -ContentType 'application/json' -TimeoutSec 2 | Out-Null
-    }
-} catch { }
-
-Write-Host " [PROCESSOR] [OK] Bo xu ly local da san sang (Port 8765)!" -ForegroundColor Green
-Write-Host " [WEB] Dang mo giao dien WT Studio cuc bo: http://127.0.0.1:8765/" -ForegroundColor Cyan
-Write-Host "======================================================================" -ForegroundColor Cyan
-Start-Process 'http://127.0.0.1:8765/'
+Write-Host " [OK] WT Studio da san sang tai http://127.0.0.1:$port/" -ForegroundColor Green
+Start-Process "http://127.0.0.1:$port/"
 '@
-    $localLauncher.Replace('__RELEASE_VERSION__', $releaseVersion) | Set-Content -LiteralPath (Join-Path $InstallDir 'wt-launch.ps1') -Encoding UTF8
-}
+    $launcherPs1 = $launcherPs1.Replace('__GATEWAY_BASE__', $GatewayBase).Replace('__PORT__', "$Port").Replace('__DATA_ROOT__', $DataRoot).Replace('__RELEASE_VERSION__', $releaseVersion)
+    Set-Content -LiteralPath (Join-Path $InstallDir 'wt-launch.ps1') -Value $launcherPs1 -Encoding UTF8
 
-Write-Host "[5/5] Updating PATH and shortcut..." -ForegroundColor Yellow
-$userPath = [Environment]::GetEnvironmentVariable("Path", "User")
-$normalizedInstallDir = $InstallDir.TrimEnd('\')
-$userPathEntries = @($userPath -split ';' | Where-Object {
-    $_ -and $_.TrimEnd('\') -ine $normalizedInstallDir
-})
-# Keep WTStudio first because WindowsApps may already provide wt.exe.
-[Environment]::SetEnvironmentVariable("Path", ((@($InstallDir) + $userPathEntries) -join ';'), "User")
-# Keep the shell that executed `irm ... | iex` usable immediately.  Updating
-# the User-scoped environment variable only affects processes created later;
-# the current PowerShell process keeps its old PATH otherwise, so `wtstudio`
-# fails until the user opens another terminal.
-$currentPathEntries = @($env:Path -split ';' | Where-Object { $_ })
-$installPath = $normalizedInstallDir
-$pathAlreadyLoaded = $currentPathEntries | Where-Object {
-    $_.TrimEnd('\') -ieq $installPath
-}
-if (-not $pathAlreadyLoaded) {
-    $env:Path = "$InstallDir;$env:Path"
-}
-$desktop = [Environment]::GetFolderPath("Desktop")
-$shell = New-Object -ComObject WScript.Shell
-$shortcut = $shell.CreateShortcut((Join-Path $desktop "WT Studio.lnk"))
-$desktopTarget = Join-Path $InstallDir "wtstudio.exe"
-if (-not (Test-Path -LiteralPath $desktopTarget)) { $desktopTarget = $processorExe }
-$shortcut.TargetPath = if ($useLocalUi) { Join-Path $InstallDir 'wt.cmd' } else { $processorExe }
-$shortcut.Arguments = if ($useLocalUi) { '' } else { '_serve --host 127.0.0.1 --port 8765 --no-browser' }
-$shortcut.WorkingDirectory = $InstallDir
-$shortcut.Save()
+    $cmdWrapper = "@echo off`r`nsetlocal`r`npowershell.exe -NoProfile -ExecutionPolicy Bypass -File `"%~dp0wt-launch.ps1`" %*`r`nendlocal`r`n"
+    [IO.File]::WriteAllText((Join-Path $InstallDir 'wtstudio.cmd'), $cmdWrapper, [Text.Encoding]::ASCII)
+    [IO.File]::WriteAllText((Join-Path $InstallDir 'wt.cmd'), $cmdWrapper, [Text.Encoding]::ASCII)
 
-if ($EnableStartup) {
-    $startupDir = [Environment]::GetFolderPath("Startup")
-    $startupShortcut = $shell.CreateShortcut((Join-Path $startupDir "WT Studio (background).lnk"))
-    $startupShortcut.TargetPath = $processorExe
-    $startupShortcut.Arguments = "_serve --host 127.0.0.1 --port 8765 --no-browser"
-    $startupShortcut.WorkingDirectory = $InstallDir
-    $startupShortcut.WindowStyle = 7
-    $startupShortcut.Save()
-    Write-Host "Background server startup enabled. Open the web app when needed." -ForegroundColor DarkCyan
-} else {
-    Write-Host "Background startup is off. Enable later with -EnableStartup." -ForegroundColor DarkGray
-}
+    $bgCmd = "@echo off`r`nset `"VIETDUB_DATA_ROOT=$DataRoot`"`r`nset `"VIETDUB_LICENSE_API_URL=$GatewayBase`"`r`nset `"VIETDUB_DEV_MODE=0`"`r`nset `"VIETDUB_ALLOWED_ORIGINS=http://127.0.0.1:$Port,http://localhost:$Port`"`r`ncd /d `"%~dp0vietdub-processor`"`r`n`"%~dp0vietdub-processor\vietdub-processor.exe`" _serve --host 127.0.0.1 --port $Port --no-browser --no-interactive`r`n"
+    [IO.File]::WriteAllText((Join-Path $InstallDir 'wt-bg.cmd'), $bgCmd, [Text.Encoding]::ASCII)
 
-Write-Host "Stopping any running processor..." -ForegroundColor Gray
-Get-Process -Name 'vietdub-processor' -ErrorAction SilentlyContinue | Stop-Process -Force
-try {
-    $existingConnections = Get-NetTCPConnection -LocalPort 8765 -ErrorAction SilentlyContinue
-    foreach ($conn in $existingConnections) {
-        if ($conn.OwningProcess -gt 0) {
-            Stop-Process -Id $conn.OwningProcess -Force -ErrorAction SilentlyContinue
+    $bgLauncher = Join-Path $InstallDir 'wt-bg.cmd'
+    $vbs = @"
+Set shell = CreateObject("WScript.Shell")
+On Error Resume Next
+Set http = CreateObject("MSXML2.ServerXMLHTTP.6.0")
+http.setTimeouts 1000, 1000, 1000, 1000
+alreadyRunning = False
+http.open "GET", "http://127.0.0.1:$Port/api/health", False
+http.send
+If Err.Number = 0 Then
+  If http.status = 200 Then alreadyRunning = True
+End If
+If Not alreadyRunning Then
+  shell.Run Chr(34) & "$bgLauncher" & Chr(34), 0, False
+  For i = 1 To 45
+    Err.Clear
+    http.open "GET", "http://127.0.0.1:$Port/api/health", False
+    http.send
+    If Err.Number = 0 Then
+      If http.status = 200 Then Exit For
+    End If
+    WScript.Sleep 1000
+  Next
+End If
+On Error GoTo 0
+shell.Run "http://127.0.0.1:$Port/", 1, False
+"@
+    [IO.File]::WriteAllText((Join-Path $InstallDir 'open.vbs'), $vbs, [Text.Encoding]::Unicode)
+
+    if (-not $SkipPath) {
+        $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+        $normDir = $InstallDir.TrimEnd('\')
+        $entries = @($userPath -split ';' | Where-Object { $_ -and $_.TrimEnd('\') -ine $normDir })
+        [Environment]::SetEnvironmentVariable('Path', ((@($InstallDir) + $entries) -join ';'), 'User')
+        $curEntries = @($env:Path -split ';' | Where-Object { $_ })
+        if (-not ($curEntries | Where-Object { $_.TrimEnd('\') -ieq $normDir })) {
+            $env:Path = "$InstallDir;$env:Path"
         }
     }
-} catch { }
-Start-Sleep -Milliseconds 800
 
-Write-Host "Configuring API keys and offline environment..." -ForegroundColor Yellow
-Initialize-WTStudioConfig -TargetDir $InstallDir
+    if (-not $SkipShortcut) {
+        $desktop = [Environment]::GetFolderPath('Desktop')
+        $shell = New-Object -ComObject WScript.Shell
+        $sc = $shell.CreateShortcut((Join-Path $desktop 'WT Studio.lnk'))
+        $sc.TargetPath = Join-Path $env:SystemRoot 'System32\wscript.exe'
+        $sc.Arguments = '"' + (Join-Path $InstallDir 'open.vbs') + '"'
+        $sc.WorkingDirectory = $InstallDir
+        $sc.Description = 'WT Studio - Long tieng AI & Render Video'
+        $sc.Save()
+    }
 
-Write-Host "Starting processor and verifying the local connection..." -ForegroundColor Yellow
-$processorLog = Join-Path $InstallDir 'runtime\processor-start.stdout.log'
-$processorErrorLog = Join-Path $InstallDir 'runtime\processor-start.stderr.log'
-try {
-    Start-Process -WindowStyle Hidden -FilePath $processorExe `
-        -ArgumentList @('_serve', '--host', '127.0.0.1', '--port', '8765', '--no-browser') `
-        -WorkingDirectory (Split-Path -Parent $processorExe) `
-        -RedirectStandardOutput $processorLog -RedirectStandardError $processorErrorLog -ErrorAction Stop | Out-Null
-} catch {
-    if ($_.Exception.Message -match "Application Control" -or $_.Exception.Message -match "blocked") {
-        Write-Host ""
-        Write-Host "======================================================================" -ForegroundColor Red
-        Write-Host " [!] CHU Y: Windows 11 Smart App Control dang chan chay file moi tai!" -ForegroundColor Yellow
-        Write-Host "----------------------------------------------------------------------" -ForegroundColor DarkGray
-        Write-Host " De mo khoa, ban chi can 1 thao tac don gian:" -ForegroundColor White
-        Write-Host " 1. Mo Start Menu, tim kiem: 'Smart App Control'" -ForegroundColor Cyan
-        Write-Host " 2. Chuyen trang thai sang 'Off' (Tat)" -ForegroundColor Yellow
-        Write-Host " (Hoac vao Windows Security -> Virus & threat protection -> Exclusions" -ForegroundColor DarkGray
-        Write-Host "  -> Them thu muc: $InstallDir)" -ForegroundColor DarkGray
-        Write-Host " Sau khi tat, go: wt de khoi dong tool." -ForegroundColor Green
-        Write-Host "======================================================================" -ForegroundColor Red
-        exit 0
-    } else {
+    # Mode 2A: Write one-time delivery claim if WT_KEY provided
+    if ($LicenseKey) {
+        $deliveryJson = (@{ claim = $LicenseKey; key = $LicenseKey } | ConvertTo-Json -Compress)
+        [IO.File]::WriteAllText((Join-Path $InstallDir 'wt-delivery.json'), $deliveryJson, (New-Object Text.UTF8Encoding($false)))
+    }
+
+    # [5/5] Start processor, verify health & activate license
+    Write-Host "[5/5] Dang khoi dong WT Studio tren cong $Port va kiem tra ket noi..." -ForegroundColor Yellow
+    $env:VIETDUB_DATA_ROOT = $DataRoot
+    $env:VIETDUB_LICENSE_API_URL = $GatewayBase
+    $env:VIETDUB_DEV_MODE = '0'
+    $env:VIETDUB_ALLOWED_ORIGINS = "http://127.0.0.1:$Port,http://localhost:$Port"
+
+    $stdoutLog = Join-Path $InstallDir 'runtime\processor-start.stdout.log'
+    $stderrLog = Join-Path $InstallDir 'runtime\processor-start.stderr.log'
+    try {
+        Start-Process -WindowStyle Hidden -FilePath $processorExe `
+            -ArgumentList @('_serve', '--host', '127.0.0.1', '--port', "$Port", '--no-browser', '--no-interactive') `
+            -WorkingDirectory (Split-Path -Parent $processorExe) `
+            -RedirectStandardOutput $stdoutLog -RedirectStandardError $stderrLog -ErrorAction Stop | Out-Null
+    } catch {
+        if ($_.Exception.Message -match 'Application Control|blocked') {
+            Write-Host ''
+            Write-Host '======================================================================' -ForegroundColor Red
+            Write-Host ' [!] CHU Y: Windows 11 Smart App Control dang chan chay ung dung!' -ForegroundColor Yellow
+            Write-Host '----------------------------------------------------------------------' -ForegroundColor DarkGray
+            Write-Host ' Cach mo khoa chi mat 10 giay:' -ForegroundColor White
+            Write-Host " 1. Mo Start Menu, tim 'Smart App Control' va chuyen sang 'Off' (Tat)." -ForegroundColor Cyan
+            Write-Host ' 2. Bam icon WT Studio ngoai Desktop hoac go: wtstudio' -ForegroundColor Green
+            Write-Host '======================================================================' -ForegroundColor Red
+            exit 0
+        }
         throw
     }
-}
-$verifiedHealth = $null
-for ($attempt = 0; $attempt -lt 30; $attempt++) {
-    try {
-        $candidate = Invoke-RestMethod -Uri 'http://127.0.0.1:8765/api/health' -TimeoutSec 2 -Headers @{ Origin = 'http://127.0.0.1:8765' }
-        if ($candidate.status -eq 'ok' -or ($candidate.capabilities.ffmpeg -and $candidate.capabilities.edge_tts)) {
-            $verifiedHealth = $candidate
-            break
-        }
-    } catch { }
-    Start-Sleep -Milliseconds 500
-}
-if (-not $verifiedHealth) {
-    throw "Files installed, but processor startup verification failed. Check $processorErrorLog. Do not reinstall repeatedly; send this log to support."
-}
 
-Write-Host "Activating offline developer license..." -ForegroundColor Yellow
-try {
-    $activateBody = @{ key = "WT-DEV-LOCAL-PRO" } | ConvertTo-Json
-    $actResult = Invoke-RestMethod -Uri 'http://127.0.0.1:8765/api/license/activate' -Method Post -Body $activateBody -ContentType 'application/json' -TimeoutSec 5 -Headers @{ Origin = 'http://127.0.0.1:8765' }
-    if ($actResult.valid) {
-        Write-Host "Developer license activated successfully (999,999 credits, permanent offline)." -ForegroundColor Green
+    $healthy = $false
+    for ($attempt = 0; $attempt -lt 40; $attempt++) {
+        try {
+            $h = Invoke-RestMethod -Uri "http://127.0.0.1:$Port/api/health" -TimeoutSec 2
+            if ($h.status -eq 'ok') { $healthy = $true; break }
+        } catch { }
+        Start-Sleep -Milliseconds 500
     }
-} catch {
-    try { & $processorExe --key WT-DEV-LOCAL-PRO --check-key } catch {}
-}
+    if (-not $healthy) {
+        throw "Bo xu ly WT Studio khong khoi dong duoc tren cong $Port. Kiem tra log: $stderrLog"
+    }
 
-Write-Host "WTStudio Edge-TTS processor $releaseVersion installed, running and verified on port 8765." -ForegroundColor Green
-Write-Host "Quick launch command installed: wt" -ForegroundColor Green
-if ($useLocalUi) { Write-Host "wt opens VietDub at http://127.0.0.1:8765/" -ForegroundColor Green }
-Write-Host "Processor URI registered for the current Windows user." -ForegroundColor DarkCyan
-Write-Host "Opening WT Studio local web interface: http://127.0.0.1:8765/" -ForegroundColor Cyan
-Start-Process 'http://127.0.0.1:8765/'
-Write-Host "Next time, open PowerShell or CMD and run: wt" -ForegroundColor Cyan
+    $activated = $false
+    $activationMessage = ''
+    try {
+        $licStatus = Invoke-RestMethod -Uri "http://127.0.0.1:$Port/api/license/status" -TimeoutSec 10
+        if ($licStatus.valid) { $activated = $true }
+    } catch {
+        $activationMessage = $_.Exception.Message
+    }
+
+    if (-not $activated -and $LicenseKey) {
+        try {
+            $actBody = @{ key = $LicenseKey } | ConvertTo-Json -Compress
+            $actRes = Invoke-RestMethod -Uri "http://127.0.0.1:$Port/api/license/activate" -Method Post -ContentType 'application/json' -Body $actBody -TimeoutSec 12
+            if ($actRes.valid) { $activated = $true }
+        } catch {
+            $errBody = ''
+            try { $sr = New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream()); $errBody = $sr.ReadToEnd() } catch {}
+            $activationMessage = if ($errBody) { $errBody } else { $_.Exception.Message }
+        }
+    }
+
+    Write-Host ''
+    Write-Host '======================================================================' -ForegroundColor Green
+    Write-Host " [OK] CAI DAT WT STUDIO v$releaseVersion THANH CONG!" -ForegroundColor Green
+    if ($activated) {
+        Write-Host ' [OK] BAN QUYEN DA DUOC KICH HOAT - SAN SANG SU DUNG NGAY!' -ForegroundColor Green
+    } elseif ($LicenseKey) {
+        Write-Host " [!] Chua kich hoat duoc key tu dong: $activationMessage" -ForegroundColor Yellow
+        Write-Host '     Ban co the nhap lai ma ban quyen truc tiep tren giao dien Web.' -ForegroundColor Yellow
+    } else {
+        Write-Host ' [!] Trinh duyet se mo man hinh nhap Ma ban quyen (License Key).' -ForegroundColor Yellow
+        Write-Host '     Dan ma WTS-... ban nhan duoc sau thanh toan de mo khoa tool.' -ForegroundColor Yellow
+    }
+    Write-Host " -> Giao dien Web: http://127.0.0.1:$Port/" -ForegroundColor Cyan
+    Write-Host ' -> Lan sau mo nhanh: Bam icon "WT Studio" ngoai Desktop hoac go: wtstudio' -ForegroundColor Cyan
+    Write-Host ' -> Cap nhat ban moi: wtstudio update' -ForegroundColor DarkCyan
+    Write-Host '======================================================================' -ForegroundColor Green
+
+    if (-not $NoBrowser) {
+        Start-Process "http://127.0.0.1:$Port/"
+    }
+} finally {
+    if (Test-Path -LiteralPath $tempRoot) {
+        Remove-Item -LiteralPath $tempRoot -Recurse -Force -ErrorAction SilentlyContinue
+    }
+}

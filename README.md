@@ -1,40 +1,22 @@
-# WT Studio - ViệtDub Video AI (v2.0.81)
+# WT Studio - ViệtDub Video AI (Commercial Distribution)
 
-Công cụ tự động hóa sản xuất video đa ngôn ngữ: cào video Douyin hàng loạt không logo, nhận dạng giọng nói, dịch thuật ngữ cảnh, lồng tiếng AI đa nhân vật và render GPU tốc độ cao.
+Phiên bản mới nhất: **v2.0.85** (2026-11-21)
 
----
+## Cài đặt nhanh qua 1 dòng lệnh PowerShell (Windows 10/11 x64)
 
-## ⚡ Cài đặt nhanh (1 lệnh duy nhất)
-
-### Dành cho PowerShell:
+### Cách 1: Cài đặt & tự kích hoạt ngay bằng Mã bản quyền (Khuyên dùng)
+Mở **Windows PowerShell** và dán dòng lệnh nhận được sau khi thanh toán:
 ```powershell
-iex (irm https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1)
+$env:WT_KEY="WTS-XXXX-XXXX-XXXX-XXXX"; irm https://wtstudio-gateway.wtshop.workers.dev/install.ps1 | iex
 ```
 
-### Dành cho Command Prompt (CMD):
-```cmd
-powershell -ExecutionPolicy Bypass -Command "iex (irm https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1)"
+### Cách 2: Cài đặt trước, nhập Mã bản quyền trực tiếp trên Web
+```powershell
+irm https://wtstudio-gateway.wtshop.workers.dev/install.ps1 | iex
 ```
+*(Link dự phòng từ GitHub: `irm https://raw.githubusercontent.com/wtrg/wtstudio-distribution/main/install.ps1 | iex`)*
 
----
-
-## 🚀 Khởi chạy & Cập nhật
-
-* **Khởi chạy tool**: Mở PowerShell hoặc CMD gõ:
-  ```bash
-  wt
-  ```
-  *(Hệ thống tự động kích hoạt bộ xử lý ngầm và mở Studio trên trình duyệt tại `http://127.0.0.1:8765`)*
-
-* **Cập nhật lên bản mới nhất**:
-  ```bash
-  wt update
-  ```
-
----
-
-## 💻 Yêu cầu hệ thống
-
-* **Hệ điều hành**: Windows 10 / 11 (64-bit)
-* **Phần cứng**: Tối thiểu 4GB RAM (Khuyến nghị 8GB RAM + GPU NVIDIA để tăng tốc render)
-* Đã tích hợp sẵn FFmpeg, Edge-TTS và toàn bộ runtime cần thiết.
+## Mở nhanh & Cập nhật
+- Mở tool: Bấm icon **WT Studio** ngoài Desktop hoặc gõ `wtstudio` (hoặc `wt`) trong CMD/PowerShell.
+- Cập nhật bản mới: `wtstudio update`
+- Giao diện Web cục bộ: `http://127.0.0.1:8765/`
